@@ -1,0 +1,33 @@
+# Python virtual environment
+venv/
+
+# Python cache files (auto-generated, no need to commit)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Environment variables (sensitive — never commit this)
+.env
+
+# Uploads folder (user-uploaded files, not source code)
+uploads/
+
+# Database files (you're moving to Railway Postgres, but just in case)
+*.db
+*.sqlite3
+
+# VS Code settings (optional, some teams commit this, some don't)
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Pytest cache
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
