@@ -56,11 +56,6 @@ export default function Login({ onLogin }) {
           </button>
         </form>
 
-        <div className="login-hint">
-          <p><strong>Admin:</strong> admin / Admin@123</p>
-          <p><strong>Employees:</strong> haroon, abigail, tehreen, mkhalid, pratik,</p>
-          <p>salman, dilshad, employee8, employee9, employee10 / Emp@1234</p>
-        </div>
       </div>
     </div>
   );

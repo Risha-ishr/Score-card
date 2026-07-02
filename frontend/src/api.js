@@ -10,7 +10,7 @@ const headers = () => ({
 async function request(url, opts = {}) {
   const res  = await fetch(BASE + url, opts);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  if (!res.ok) throw new Error(data.detail || data.error || 'Request failed');
   return data;
 }
 

@@ -1,9 +1,9 @@
 @echo off
 echo Starting Applicant Scorecard...
 echo.
-echo [1/2] Starting Backend on http://localhost:5000
-start "Scorecard Backend" cmd /k "cd /d %~dp0backend && node server.js"
-timeout /t 2 /nobreak >nul
+echo [1/2] Starting Python Backend on http://localhost:8000
+start "Scorecard Backend" cmd /k "cd /d %~dp0backend-python && uvicorn app.main:app --reload --port 8000"
+timeout /t 3 /nobreak >nul
 
 echo [2/2] Starting Frontend on http://localhost:3000
 start "Scorecard Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
@@ -11,7 +11,7 @@ timeout /t 3 /nobreak >nul
 
 echo.
 echo Both servers started!
-echo Backend : http://localhost:5000
+echo Backend : http://localhost:8000  (Python/FastAPI -> PostgreSQL)
 echo Frontend: http://localhost:3000
 echo.
 echo Admin     login: admin     / Admin@123

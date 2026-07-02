@@ -1,0 +1,29 @@
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
+
+class ScoreItem(BaseModel):
+    parameter_id: int
+    score:        int
+
+class ScorecardCreate(BaseModel):
+    applicant_name: Optional[str] = None
+    client:         Optional[str] = None
+    position:       Optional[str] = None
+    jd_shared:      Optional[bool] = False
+    remarks:        Optional[str] = None
+    scores:         Optional[List[ScoreItem]] = []
+
+class ScorecardResponse(BaseModel):
+    id:             int
+    employee_id:    int
+    applicant_name: Optional[str] = None
+    client:         Optional[str] = None
+    position:       Optional[str] = None
+    jd_shared:      Optional[bool] = None
+    remarks:        Optional[str] = None
+    created_at:     Optional[datetime] = None
+    updated_at:     Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

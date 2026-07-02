@@ -67,7 +67,7 @@ export default function AdminDashboard({ user, onLogout }) {
         <div className="page-header">
           <div>
             <h2>Employee Scorecards</h2>
-            <p className="sub">Manage and score all 10 employees</p>
+            <p className="sub">Manage and score all {employees.length} employees</p>
           </div>
           <div className="header-actions">
             <input type="file" accept=".xlsx,.xls" ref={fileRef} onChange={handleExcel} hidden />
@@ -112,7 +112,6 @@ export default function AdminDashboard({ user, onLogout }) {
                       <td className="td-num">{i + 1}</td>
                       <td>
                         <div className="emp-name">{emp.name}</div>
-                        <div className="emp-user">@{emp.username}</div>
                         <div className="emp-email">{emp.email || '—'}</div>
                       </td>
                       <td>{emp.applicant_name || <span className="muted">—</span>}</td>
