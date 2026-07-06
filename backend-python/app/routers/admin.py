@@ -80,7 +80,8 @@ def get_employees(
             Scorecard.client,
             Scorecard.position,
             Scorecard.updated_at,
-            func.round(weighted_subq * 100.0 / 115, 1).label("weighted_pct"),
+            # func.round(weighted_subq * 100.0 / 115, 1).label("weighted_pct"),
+            func.round(cast(weighted_subq * 100.0 / 115, Numeric), 1).label("weighted_pct"),
         )
         .outerjoin(Scorecard, Scorecard.employee_id == User.id)
         .filter(User.role == UserRole.employee)
