@@ -2,7 +2,7 @@ import re
 import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select
+from sqlalchemy import func, select, cast, Numeric
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import List, Optional
 from pydantic import BaseModel
