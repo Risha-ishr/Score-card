@@ -6,6 +6,7 @@ from sqlalchemy import func, select, cast, Numeric
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import List, Optional
 from pydantic import BaseModel
+from fastapi import Query
 
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -60,7 +61,9 @@ def get_parameters(
 @router.get("/employees")
 def get_employees(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    page: int = Query(1,  description="Page number, starting at one"),
+    page_number = Query(20,  description="Page number, starting at one"),
+    # _: User = Depends(require_admin),
 ):
     weighted_subq = (
         select(func.sum(Score.score * (4 - Parameter.weightage)))
