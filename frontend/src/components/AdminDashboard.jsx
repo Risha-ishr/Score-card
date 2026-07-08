@@ -59,7 +59,7 @@ export default function AdminDashboard({ user, onLogout }) {
         <div className="nav-right">
           <span className="nav-user">👤 {user.name}</span>
           <span className="badge badge-admin">Admin</span>
-          <button className="btn-logout" onClick={onLogout}>Logout</button>
+          <button className="btn-logout" onClick={onLogout}> Logout </button>
         </div>
       </nav>
 
