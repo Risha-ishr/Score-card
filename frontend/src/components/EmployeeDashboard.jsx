@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import ReactPaginate from 'react-paginate';
 import { getMyScorecard } from '../api';
+
+const PAGE_SIZE = 5;
 
 const MULT    = { 1: 3, 2: 2, 3: 1 };
 const MAX_TOT = 115;
@@ -14,6 +17,7 @@ function perf(pct) {
 export default function EmployeeDashboard({ user, onLogout }) {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
+  const [page,    setPage]    = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -22,11 +26,16 @@ export default function EmployeeDashboard({ user, onLogout }) {
     })();
   }, []);
 
-  const weightedTotal = data?.scores?.length
-    ? data.scores.reduce((s, r) => s + r.score * MULT[r.weightage], 0)
+  const allScores     = data?.scores ?? [];
+  const weightedTotal = allScores.length
+    ? allScores.reduce((s, r) => s + r.score * MULT[r.weightage], 0)
     : 0;
   const pct = Math.round((weightedTotal / MAX_TOT) * 100);
   const p   = perf(pct);
+
+  const pageCount  = Math.ceil(allScores.length / PAGE_SIZE);
+  const offset     = page * PAGE_SIZE;
+  const pageScores = allScores.slice(offset, offset + PAGE_SIZE);
 
   return (
     <div className="app">
@@ -91,13 +100,13 @@ export default function EmployeeDashboard({ user, onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.scores.map((s, i) => {
+                  {pageScores.map((s, i) => {
                     const mult   = MULT[s.weightage];
                     const wtd    = s.score * mult;
                     const maxWtd = 5 * mult;
                     return (
                       <tr key={s.parameter_id}>
-                        <td className="td-num">{i + 1}</td>
+                        <td className="td-num">{offset + i + 1}</td>
                         <td>
                           <div>{s.name}</div>
                           {s.description && <div className="param-desc-sm">{s.description}</div>}
@@ -134,6 +143,30 @@ export default function EmployeeDashboard({ user, onLogout }) {
                   </tr>
                 </tfoot>
               </table>
+
+              {pageCount > 1 && (
+                <ReactPaginate
+                  pageCount={pageCount}
+                  forcePage={page}
+                  onPageChange={({ selected }) => setPage(selected)}
+                  previousLabel="‹ Prev"
+                  nextLabel="Next ›"
+                  breakLabel="…"
+                  containerClassName="pagination"
+                  pageClassName="pg-item"
+                  pageLinkClassName="pg-link"
+                  previousClassName="pg-item"
+                  previousLinkClassName="pg-link pg-nav"
+                  nextClassName="pg-item"
+                  nextLinkClassName="pg-link pg-nav"
+                  breakClassName="pg-item"
+                  breakLinkClassName="pg-link pg-break"
+                  activeClassName="pg-active"
+                  disabledClassName="pg-disabled"
+                  marginPagesDisplayed={1}
+                  pageRangeDisplayed={3}
+                />
+              )}
 
               {/* Overall progress bar */}
               <div className="overall-section">

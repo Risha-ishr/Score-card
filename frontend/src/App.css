@@ -406,6 +406,42 @@ textarea:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.1
 .remarks-card { padding: 20px; }
 .remarks-card p { color: #475569; font-size: 14px; line-height: 1.6; }
 
+/* ── Pagination (react-paginate) ─────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  list-style: none;
+  padding: 16px;
+  border-top: 1px solid #F1F5F9;
+  margin: 0;
+}
+.pg-item { display: inline-flex; }
+.pg-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+  user-select: none;
+}
+.pg-link:hover           { background: #EFF6FF; border-color: #3B82F6; color: #2563EB; }
+.pg-nav                  { font-weight: 600; }
+.pg-break                { border-color: transparent; background: transparent; cursor: default; color: #94A3B8; }
+.pg-active .pg-link      { background: #2563EB; border-color: #2563EB; color: #fff; }
+.pg-disabled .pg-link    { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
 /* ── Empty / loading states ──────────────────────────────────── */
 .empty-state {
   text-align: center;

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactPaginate from 'react-paginate';
 import { getEmployees, uploadExcel } from '../api';
 import ScoreForm from './ScoreForm';
+
+const PAGE_SIZE = 10;
 
 function perfStyle(pct) {
   if (pct == null) return { color: '#9CA3AF', bar: '#E5E7EB' };
@@ -11,20 +14,26 @@ function perfStyle(pct) {
 }
 
 export default function AdminDashboard({ user, onLogout }) {
-  const [employees,   setEmployees]   = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [selected,    setSelected]    = useState(null);
-  const [uploadMsg,   setUploadMsg]   = useState('');
-  const [uploading,   setUploading]   = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [page,      setPage]      = useState(0);
+  const [loading,   setLoading]   = useState(true);
+  const [selected,  setSelected]  = useState(null);
+  const [uploadMsg, setUploadMsg] = useState('');
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
 
   const loadEmployees = async () => {
     setLoading(true);
+    setPage(0);
     try { setEmployees(await getEmployees()); } catch { /* empty */ }
     setLoading(false);
   };
 
   useEffect(() => { loadEmployees(); }, []);
+
+  const pageCount      = Math.ceil(employees.length / PAGE_SIZE);
+  const offset         = page * PAGE_SIZE;
+  const pageEmployees  = employees.slice(offset, offset + PAGE_SIZE);
 
   const handleExcel = async (e) => {
     const file = e.target.files[0];
@@ -67,7 +76,9 @@ export default function AdminDashboard({ user, onLogout }) {
         <div className="page-header">
           <div>
             <h2>Employee Scorecards</h2>
-            <p className="sub">Manage and score all {employees.length} employees</p>
+            <p className="sub">
+              {employees.length} employees — page {page + 1} of {pageCount || 1}
+            </p>
           </div>
           <div className="header-actions">
             <input type="file" accept=".xlsx,.xls" ref={fileRef} onChange={handleExcel} hidden />
@@ -105,11 +116,11 @@ export default function AdminDashboard({ user, onLogout }) {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp, i) => {
+                {pageEmployees.map((emp, i) => {
                   const ps = perfStyle(emp.weighted_pct);
                   return (
                     <tr key={emp.id}>
-                      <td className="td-num">{i + 1}</td>
+                      <td className="td-num">{offset + i + 1}</td>
                       <td>
                         <div className="emp-name">{emp.name}</div>
                         <div className="emp-email">{emp.email || '—'}</div>
@@ -149,6 +160,30 @@ export default function AdminDashboard({ user, onLogout }) {
                 })}
               </tbody>
             </table>
+
+            {pageCount > 1 && (
+              <ReactPaginate
+                pageCount={pageCount}
+                forcePage={page}
+                onPageChange={({ selected }) => setPage(selected)}
+                previousLabel="‹ Prev"
+                nextLabel="Next ›"
+                breakLabel="…"
+                containerClassName="pagination"
+                pageClassName="pg-item"
+                pageLinkClassName="pg-link"
+                previousClassName="pg-item"
+                previousLinkClassName="pg-link pg-nav"
+                nextClassName="pg-item"
+                nextLinkClassName="pg-link pg-nav"
+                breakClassName="pg-item"
+                breakLinkClassName="pg-link pg-break"
+                activeClassName="pg-active"
+                disabledClassName="pg-disabled"
+                marginPagesDisplayed={1}
+                pageRangeDisplayed={3}
+              />
+            )}
           </div>
         )}
       </div>
