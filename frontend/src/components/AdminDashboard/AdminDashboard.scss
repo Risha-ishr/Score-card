@@ -1,0 +1,94 @@
+.badge-admin {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-secondary {
+  background: #fff;
+  color: #2563EB;
+  border: 1.5px solid #2563EB;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) { background: #EFF6FF; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.emp-name {
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.emp-email {
+  font-size: 11px;
+  color: #CBD5E1;
+  margin-top: 1px;
+}
+
+.score-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-pct {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-score {
+  background: #2563EB;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { background: #1D4ED8; }
+}
+
+.btn-edit {
+  background: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { background: #DCFCE7; }
+}
+
+.pg-goto-input {
+  width: 60px;
+  height: 34px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  margin: 16px 0 16px 8px;
+
+  &:focus { border-color: #3B82F6; }
+}
+.pagination-box{
+    display: flex;
+    justify-content: center;
+}
+

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactPaginate from 'react-paginate';
-import { getEmployees, uploadExcel } from '../api';
-import ScoreForm from './ScoreForm';
+import { getEmployees, uploadExcel } from '../../api';
+import ScoreForm from '../ScoreForm';
+import './AdminDashboard.scss';
+import SimpleBox from '../SimpleBox';
 
 const PAGE_SIZE = 10;
 
@@ -99,7 +101,7 @@ export default function AdminDashboard({ user, onLogout }) {
         )}
 
         {loading ? (
-          <div className="loading-state">Loading employees…</div>
+          <SimpleBox/>
         ) : (
           <div className="card">
             <table className="table">
@@ -160,8 +162,7 @@ export default function AdminDashboard({ user, onLogout }) {
                 })}
               </tbody>
             </table>
-
-            {pageCount > 1 && (
+            {/* <div className="pagination-box" > */}
               <ReactPaginate
                 pageCount={pageCount}
                 forcePage={page}
@@ -183,9 +184,24 @@ export default function AdminDashboard({ user, onLogout }) {
                 marginPagesDisplayed={1}
                 pageRangeDisplayed={3}
               />
-            )}
+              {/* <input
+              type="number"
+              min={1}
+              max={pageCount}
+              value={page + 1}
+              onChange={(e) => {
+                const value = e.target.value;
+                console.log('value', value )
+                console.log('pagecount', pageCount )
+      
+                setPage(e.target.value)}}
+              placeholder={`1-${pageCount}`}
+              className="pg-goto-input"
+              /> */}
+            {/* </div> */}
           </div>
         )}
+        
       </div>
     </div>
   );

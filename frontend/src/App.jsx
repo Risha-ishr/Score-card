@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Login            from './components/Login';
-import AdminDashboard   from './components/AdminDashboard';
+import AdminDashboard   from './components/AdminDashboard/AdminDashboard';
 import EmployeeDashboard from './components/EmployeeDashboard';
 
 export default function App() {
@@ -41,4 +41,5 @@ export default function App() {
   if (auth.user.role === 'admin')
   return <AdminDashboard user={auth.user} onLogout={handleLogout} />;
   return <EmployeeDashboard user={auth.user} onLogout={handleLogout} />;
+
 }
