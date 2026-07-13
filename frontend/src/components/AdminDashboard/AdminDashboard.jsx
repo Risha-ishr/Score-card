@@ -22,20 +22,30 @@ export default function AdminDashboard({ user, onLogout }) {
   const [selected,  setSelected]  = useState(null);
   const [uploadMsg, setUploadMsg] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [search,    setSearch]    = useState('');
   const fileRef = useRef();
 
-  const loadEmployees = async () => {
+  const searchTimer = useRef(null);
+
+  const loadEmployees = async (searchTerm = '') => {
     setLoading(true);
     setPage(0);
-    try { setEmployees(await getEmployees()); } catch { /* empty */ }
+    try { setEmployees(await getEmployees(searchTerm)); } catch { /* empty */ }
     setLoading(false);
   };
 
   useEffect(() => { loadEmployees(); }, []);
 
-  const pageCount      = Math.ceil(employees.length / PAGE_SIZE);
-  const offset         = page * PAGE_SIZE;
-  const pageEmployees  = employees.slice(offset, offset + PAGE_SIZE);
+  const handleSearch = (value) => {
+    setSearch(value);
+    setPage(0);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => loadEmployees(value), 400);
+  };
+
+  const pageCount     = Math.ceil(employees.length / PAGE_SIZE);
+  const offset        = page * PAGE_SIZE;
+  const pageEmployees = employees.slice(offset, offset + PAGE_SIZE);
 
   const handleExcel = async (e) => {
     const file = e.target.files[0];
@@ -49,7 +59,7 @@ export default function AdminDashboard({ user, onLogout }) {
       let msg = `${updated} record(s) updated.`;
       if (created) msg += `  ${created} new employee(s) created from Excel.`;
       setUploadMsg({ text: msg, ok: true });
-      loadEmployees();
+      loadEmployees(search);
     } catch (err) {
       setUploadMsg({ text: 'Error: ' + err.message, ok: false });
     }
@@ -58,7 +68,7 @@ export default function AdminDashboard({ user, onLogout }) {
   };
 
   if (selected) {
-    return <ScoreForm employee={selected} onBack={() => { setSelected(null); loadEmployees(); }} />;
+    return <ScoreForm employee={selected} onBack={() => { setSelected(null); loadEmployees(search); }} />;
   }
 
   return (
@@ -79,7 +89,10 @@ export default function AdminDashboard({ user, onLogout }) {
           <div>
             <h2>Employee Scorecards</h2>
             <p className="sub">
-              {employees.length} employees — page {page + 1} of {pageCount || 1}
+              {search.trim()
+                ? `${employees.length} result(s) found`
+                : `${employees.length} employees`
+              } — page {page + 1} of {pageCount || 1}
             </p>
           </div>
           <div className="header-actions">
@@ -92,6 +105,20 @@ export default function AdminDashboard({ user, onLogout }) {
               {uploading ? '⏳ Processing…' : '📤 Import from Excel'}
             </button>
           </div>
+        </div>
+
+        <div className="search-bar-wrap">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search by employee, applicant, client or position…"
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+          />
+          {search && (
+            <button className="search-clear" onClick={() => { setSearch(''); loadEmployees(''); setPage(0); }}>✕</button>
+          )}
         </div>
 
         {uploadMsg && (
@@ -118,6 +145,13 @@ export default function AdminDashboard({ user, onLogout }) {
                 </tr>
               </thead>
               <tbody>
+                {pageEmployees.length === 0 && (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>
+                      No results found for "<strong>{search}</strong>"
+                    </td>
+                  </tr>
+                )}
                 {pageEmployees.map((emp, i) => {
                   const ps = perfStyle(emp.weighted_pct);
                   return (

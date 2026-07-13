@@ -24,8 +24,8 @@ export const login = (username, password) =>
 export const getParameters = () =>
   request('/admin/parameters', { headers: headers() });
 
-export const getEmployees = () =>
-  request('/admin/employees', { headers: headers() });
+export const getEmployees = (search = '') =>
+  request(`/admin/employees${search ? `?search=${encodeURIComponent(search)}` : ''}`, { headers: headers() });
 
 export const getEmployeeScorecard = (id) =>
   request(`/admin/employees/${id}/scorecard`, { headers: headers() });

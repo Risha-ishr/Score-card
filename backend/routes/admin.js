@@ -18,7 +18,10 @@ router.get('/parameters', (req, res) => {
 });
 
 router.get('/employees', (req, res) => {
-  const employees = db.prepare(`
+  const search = req.query.search?.trim();
+  const like   = search ? `%${search}%` : null;
+
+  let query = `
     SELECT
       u.id, u.username, u.name, u.email,
       s.id            AS scorecard_id,
@@ -33,9 +36,16 @@ router.get('/employees', (req, res) => {
     FROM  users u
     LEFT JOIN scorecards s ON s.employee_id = u.id
     WHERE u.role = 'employee'
-    ORDER BY u.id
-  `).all();
-  res.json(employees);
+  `;
+
+  const params = [];
+  if (like) {
+    query += ` AND (u.name LIKE ? OR s.applicant_name LIKE ? OR s.client LIKE ? OR s.position LIKE ?)`;
+    params.push(like, like, like, like);
+  }
+  query += ` ORDER BY u.id`;
+
+  res.json(db.prepare(query).all(...params));
 });
 
 router.get('/employees/:id/scorecard', (req, res) => {
