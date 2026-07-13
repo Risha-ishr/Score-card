@@ -177,7 +177,7 @@ export default function ScoreForm({ employee, onBack }) {
                   {[1, 2, 3, 4, 5].map(n => (
                     <button
                       key={n}
-                      className={`dot-btn ${score >= n ? 'dot-active' : ''}`}
+                      className={`dot-btn ${score === n ? 'dot-active' : ''}`}
                       onClick={() => setScores(s => ({ ...s, [p.id]: n }))}
                       title={`Score ${n}`}
                     >
