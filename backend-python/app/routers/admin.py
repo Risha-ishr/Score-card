@@ -2,7 +2,7 @@ import re
 import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select, cast, Numeric
+from sqlalchemy import func, select, cast, Numeric, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import List, Optional
 from pydantic import BaseModel
@@ -62,7 +62,8 @@ def get_parameters(
 def get_employees(
     db: Session = Depends(get_db),
     page: int = Query(1,  description="Page number, starting at one"),
-    page_number = Query(20,  description="Page number, starting at one"),
+    page_number = Query(20, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search by name, applicant, client or position"),
     # _: User = Depends(require_admin),
 ):
     weighted_subq = (
@@ -72,7 +73,7 @@ def get_employees(
         .scalar_subquery()
     )
 
-    rows = (
+    q = (
         db.query(
             User.id,
             User.username,
@@ -83,14 +84,24 @@ def get_employees(
             Scorecard.client,
             Scorecard.position,
             Scorecard.updated_at,
-            # func.round(weighted_subq * 100.0 / 115, 1).label("weighted_pct"),
             func.round(cast(weighted_subq * 100.0 / 115, Numeric), 1).label("weighted_pct"),
         )
         .outerjoin(Scorecard, Scorecard.employee_id == User.id)
         .filter(User.role == UserRole.employee)
-        .order_by(User.id)
-        .all()
     )
+
+    if search and search.strip():
+        like = f"%{search.strip()}%"
+        q = q.filter(
+            or_(
+                User.name.ilike(like),
+                Scorecard.applicant_name.ilike(like),
+                Scorecard.client.ilike(like),
+                Scorecard.position.ilike(like),
+            )
+        )
+
+    rows = q.order_by(User.id).all()
 
     return [
         {
