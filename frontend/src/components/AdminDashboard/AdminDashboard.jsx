@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactPaginate from 'react-paginate';
 import { getEmployees, uploadExcel } from '../../api';
 import ScoreForm from '../ScoreForm';
+import AddCandidateForm from '../AddCandidateForm';
 import './AdminDashboard.scss';
 import SimpleBox from '../SimpleBox';
 
@@ -20,9 +21,10 @@ export default function AdminDashboard({ user, onLogout }) {
   const [page,      setPage]      = useState(0);
   const [loading,   setLoading]   = useState(true);
   const [selected,  setSelected]  = useState(null);
-  const [uploadMsg, setUploadMsg] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [search,    setSearch]    = useState('');
+  const [uploadMsg,    setUploadMsg]    = useState('');
+  const [uploading,    setUploading]    = useState(false);
+  const [search,       setSearch]       = useState('');
+  const [showAddForm,  setShowAddForm]  = useState(false);
   const fileRef = useRef();
 
   const searchTimer = useRef(null);
@@ -103,6 +105,9 @@ export default function AdminDashboard({ user, onLogout }) {
               disabled={uploading}
             >
               {uploading ? '⏳ Processing…' : '📤 Import from Excel'}
+            </button>
+            <button className="btn-primary" onClick={() => setShowAddForm(true)}>
+              + Add Candidate
             </button>
           </div>
         </div>
@@ -235,8 +240,15 @@ export default function AdminDashboard({ user, onLogout }) {
             {/* </div> */}
           </div>
         )}
-        
+
       </div>
+
+      {showAddForm && (
+        <AddCandidateForm
+          onClose={() => setShowAddForm(false)}
+          onAdded={() => loadEmployees(search)}
+        />
+      )}
     </div>
   );
 }

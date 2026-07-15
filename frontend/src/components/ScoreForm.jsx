@@ -13,7 +13,7 @@ function perf(pct) {
 
 export default function ScoreForm({ employee, onBack }) {
   const [params,  setParams]  = useState([]);
-  const [form,    setForm]    = useState({ applicant_name:'', client:'', position:'', jd_shared:false, remarks:'' });
+  const [form,    setForm]    = useState({ employee_name:'', email:'', applicant_name:'', client:'', position:'', jd_shared:false, remarks:'' });
   const [scores,  setScores]  = useState({});
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
@@ -35,6 +35,8 @@ export default function ScoreForm({ employee, onBack }) {
         if (sData.scorecard) {
           const sc = sData.scorecard;
           setForm({
+            employee_name:  sData.employee?.name  || employee.name  || '',
+            email:          sData.employee?.email || employee.email || '',
             applicant_name: sc.applicant_name || '',
             client:         sc.client         || '',
             position:       sc.position       || '',
@@ -45,6 +47,11 @@ export default function ScoreForm({ employee, onBack }) {
           sData.scores.forEach(s => { m[s.parameter_id] = s.score; });
           setScores({ ...defaultScores, ...m });
         } else {
+          setForm(f => ({
+            ...f,
+            employee_name: sData.employee?.name  || employee.name  || '',
+            email:         sData.employee?.email || employee.email || '',
+          }));
           setScores(defaultScores);
         }
       } catch (err) {
@@ -105,6 +112,22 @@ export default function ScoreForm({ employee, onBack }) {
         <div className="card form-card">
           <h3 className="card-title">Applicant Details</h3>
           <div className="form-grid-2">
+            <div className="field">
+              <label>Employee Name</label>
+              <input
+                type="text" placeholder="Enter employee name"
+                value={form.employee_name}
+                onChange={e => setForm(f => ({ ...f, employee_name: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input
+                type="email" placeholder="Enter email"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              />
+            </div>
             <div className="field">
               <label>Applicant Name</label>
               <input

@@ -4,12 +4,24 @@ const XLSX     = require('xlsx');
 const path     = require('path');
 const fs       = require('fs');
 const bcrypt   = require('bcryptjs');
+const dns      = require('dns').promises;
 const db       = require('../database');
 const { authenticate, requireAdmin } = require('../middleware/authMiddleware');
 const { makeUsername } = require('../database');
 
 const router = express.Router();
 router.use(authenticate, requireAdmin);
+
+async function domainHasMx(email) {
+  try {
+    const domain = email.trim().split('@')[1];
+    if (!domain) return false;
+    const records = await dns.resolveMx(domain);
+    return Array.isArray(records) && records.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 const upload = multer({ dest: path.join(__dirname, '../uploads/') });
 
@@ -68,14 +80,28 @@ router.get('/employees/:id/scorecard', (req, res) => {
   res.json({ employee, scorecard, scores });
 });
 
-router.post('/employees/:id/scorecard', (req, res) => {
-  const { applicant_name, client, position, jd_shared, remarks, scores } = req.body;
+router.post('/employees/:id/scorecard', async (req, res) => {
+  const { employee_name, email, applicant_name, client, position, jd_shared, remarks, scores } = req.body;
+
+  if (email && !(await domainHasMx(email))) {
+    return res.status(400).json({ error: 'Email domain does not exist or cannot receive emails.' });
+  }
+
   const employee = db.prepare(
     'SELECT id FROM users WHERE id = ? AND role = ?'
   ).get(req.params.id, 'employee');
   if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
   const save = db.transaction(() => {
+    if (employee_name || email) {
+      const fields = [];
+      const vals   = [];
+      if (employee_name) { fields.push('name=?');  vals.push(employee_name.trim()); }
+      if (email)         { fields.push('email=?'); vals.push(email.trim()); }
+      vals.push(req.params.id);
+      db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id=?`).run(...vals);
+    }
+
     let sc = db.prepare('SELECT id FROM scorecards WHERE employee_id = ?').get(req.params.id);
     if (sc) {
       db.prepare(`

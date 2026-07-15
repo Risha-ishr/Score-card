@@ -37,6 +37,13 @@ export const saveEmployeeScorecard = (id, body) =>
     body: JSON.stringify(body)
   });
 
+export const addCandidate = (name, email) =>
+  request('/admin/employees', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ name, email })
+  });
+
 export const uploadExcel = (file) => {
   const form = new FormData();
   form.append('file', file);

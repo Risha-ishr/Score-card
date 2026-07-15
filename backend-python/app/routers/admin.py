@@ -1,12 +1,13 @@
 import re
 import io
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+import asyncio
+import socket
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, cast, Numeric, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import List, Optional
 from pydantic import BaseModel
-from fastapi import Query
 
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -22,6 +23,16 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
+
+async def _domain_has_mx(email: str) -> bool:
+    try:
+        domain = email.strip().split("@")[1]
+        loop   = asyncio.get_event_loop()
+        await loop.run_in_executor(None, socket.getaddrinfo, domain, None)
+        return True
+    except Exception:
+        return False
+
 
 def _make_username(name: str, db: Session) -> str:
     parts    = name.strip().lower().split()
@@ -44,6 +55,41 @@ def _upsert_score(db: Session, scorecard_id: int, parameter_id: int, score: int)
         )
     )
     db.execute(stmt)
+
+
+# ── POST /api/admin/employees (create candidate) ────────────────────────────
+
+class CreateEmployeeBody(BaseModel):
+    name:  str
+    email: str
+
+@router.post("/employees")
+async def create_employee(
+    body: CreateEmployeeBody,
+    db:   Session = Depends(get_db),
+    _:    User    = Depends(require_admin),
+):
+    name  = body.name.strip()
+    email = body.email.strip()
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="Name and email are required")
+    if not await _domain_has_mx(email):
+        raise HTTPException(status_code=400, detail="Email domain does not exist or cannot receive emails.")
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    username = _make_username(name, db)
+    employee = User(
+        username = username,
+        password = hash_password("Emp@1234"),
+        role     = UserRole.employee,
+        name     = name,
+        email    = email,
+    )
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+    return {"id": employee.id, "username": employee.username, "name": employee.name, "email": employee.email}
 
 
 # ── GET /api/admin/parameters ────────────────────────────────────────────────
@@ -190,7 +236,7 @@ def get_employee_scorecard(
 # ── POST /api/admin/employees/{id}/scorecard ──────────────────────────────────
 
 @router.post("/employees/{employee_id}/scorecard")
-def save_employee_scorecard(
+async def save_employee_scorecard(
     employee_id: int,
     body: ScorecardCreate,
     db: Session = Depends(get_db),
@@ -203,6 +249,15 @@ def save_employee_scorecard(
     )
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
+
+    if body.email:
+        if not await _domain_has_mx(body.email):
+            raise HTTPException(status_code=400, detail="Email domain does not exist or cannot receive emails.")
+
+    if body.employee_name:
+        employee.name  = body.employee_name.strip()
+    if body.email:
+        employee.email = body.email.strip()
 
     scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
     if scorecard:
