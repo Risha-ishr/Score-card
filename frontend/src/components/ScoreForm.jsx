@@ -126,7 +126,7 @@ export default function ScoreForm({ employee, onBack }) {
               <Form.Item
                 label="Employee Name"
                 name="employee_name"
-                rules={[{ required: true, message: 'Employee name is required' }]}
+                rules={[{ required: true, message: 'Please Enter Employee Name!' }]}
               >
                 <Input 
                 placeholder="Enter employee name" />
@@ -135,7 +135,7 @@ export default function ScoreForm({ employee, onBack }) {
                 label="Email"
                 name="email"
                 rules={[
-                  { required: true, message: 'Email is required' },
+                  { required: true, message: 'Please Enter Email!' },
                   { type: 'email', message: 'Enter a valid email address' }
                 ]}
               >
@@ -144,19 +144,37 @@ export default function ScoreForm({ employee, onBack }) {
               <Form.Item
                 label="Client"
                 name="client"
-                rules={[{ required: true, message: 'Client is required' }]}
+                rules={[{ required: true, message: 'Please Enter Client Name!' }]}
               >
                 <Input placeholder="Enter client name" />
               </Form.Item>
               <Form.Item
                 label="Position"
                 name="position"
-                rules={[{ required: true, message: 'Position is required' }]}
+                rules={[{ required: true, message: 'Please Enter Position!' }]}
               >
                 <Input placeholder="Position / Role" />
               </Form.Item>
               <Form.Item name="jd_shared" valuePropName="checked">
                 <Checkbox>Yes, Job Description was shared</Checkbox>
+              </Form.Item>
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) =>
+                      prevValues.jd_shared !== currentValues.jd_shared
+                    }
+                  >
+                  {({ getFieldValue }) =>
+                    getFieldValue('jd_shared') ? (
+                      <Form.Item
+                        label="Date JD Shared"
+                        name="jd_shared_date"
+                        rules={[{ required: true, message: 'Please select the date' }]}
+                      >
+                    <DatePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                    ) : null
+                  }
               </Form.Item>
             </div>
           </Form>

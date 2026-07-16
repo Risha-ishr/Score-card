@@ -58,7 +58,6 @@ export default function AddCandidateForm({ onClose, onAdded }) {
               />
             </div>
 
-            <p className="modal-hint">Default password will be set to <code>Emp@1234</code></p>
           </div>
 
           <div className="modal-footer">
