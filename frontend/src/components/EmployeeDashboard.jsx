@@ -72,10 +72,9 @@ export default function EmployeeDashboard({ user, onLogout }) {
             {/* Info cards */}
             <div className="info-row">
               {[
-                { label: 'Applicant Name', value: data.scorecard.applicant_name },
-                { label: 'Client',         value: data.scorecard.client },
-                { label: 'Position',       value: data.scorecard.position },
-                { label: 'JD Shared',      value: data.scorecard.jd_shared ? 'Yes' : 'No' },
+                { label: 'Client',    value: data.scorecard.client },
+                { label: 'Position',  value: data.scorecard.position },
+                { label: 'JD Shared', value: data.scorecard.jd_shared ? 'Yes' : 'No' },
               ].map(({ label, value }) => (
                 <div key={label} className="info-card">
                   <div className="info-label">{label}</div>

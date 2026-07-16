@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Form, Input, Checkbox } from 'antd';
 import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../api';
 
 const MULT    = { 1: 3, 2: 2, 3: 1 };
@@ -12,9 +13,10 @@ function perf(pct) {
 }
 
 export default function ScoreForm({ employee, onBack }) {
+  const [antForm] = Form.useForm();
   const [params,  setParams]  = useState([]);
-  const [form,    setForm]    = useState({ employee_name:'', email:'', applicant_name:'', client:'', position:'', jd_shared:false, remarks:'' });
   const [scores,  setScores]  = useState({});
+  const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
@@ -29,30 +31,30 @@ export default function ScoreForm({ employee, onBack }) {
         ]);
         setParams(pData);
 
-        const defaultScores = {};
-        pData.forEach(p => { defaultScores[p.id] = 3; });
+        const employeeName = sData.employee?.name  || employee.name  || '';
+        const email        = sData.employee?.email || employee.email || '';
 
         if (sData.scorecard) {
           const sc = sData.scorecard;
-          setForm({
-            employee_name:  sData.employee?.name  || employee.name  || '',
-            email:          sData.employee?.email || employee.email || '',
-            applicant_name: sc.applicant_name || '',
-            client:         sc.client         || '',
-            position:       sc.position       || '',
-            jd_shared:      !!sc.jd_shared,
-            remarks:        sc.remarks        || ''
+          antForm.setFieldsValue({
+            employee_name: employeeName,
+            email,
+            client:    sc.client   || '',
+            position:  sc.position || '',
+            jd_shared: !!sc.jd_shared,
           });
+          setRemarks(sc.remarks || '');
           const m = {};
           sData.scores.forEach(s => { m[s.parameter_id] = s.score; });
-          setScores({ ...defaultScores, ...m });
+          setScores({ ...m });
         } else {
-          setForm(f => ({
-            ...f,
-            employee_name: sData.employee?.name  || employee.name  || '',
-            email:         sData.employee?.email || employee.email || '',
-          }));
-          setScores(defaultScores);
+          antForm.setFieldsValue({
+            employee_name: employeeName,
+            email,
+            client:    '',
+            position:  '',
+            jd_shared: false,
+          });
         }
       } catch (err) {
         setMsg({ ok: false, text: err.message });
@@ -66,14 +68,22 @@ export default function ScoreForm({ employee, onBack }) {
   const p             = perf(pct);
 
   const handleSave = async () => {
+    try {
+      await antForm.validateFields();
+    } catch {
+      setMsg({ ok: false, text: 'Please fill in all required Applicant Details fields.' });
+      return;
+    }
+
     setSaving(true);
     setMsg(null);
     try {
+      const values    = antForm.getFieldsValue();
       const scoresArr = Object.entries(scores).map(([pid, sc]) => ({
         parameter_id: parseInt(pid),
         score:        parseInt(sc)
       }));
-      await saveEmployeeScorecard(employee.id, { ...form, scores: scoresArr });
+      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr });
       setMsg({ ok: true, text: 'Scorecard saved successfully!' });
     } catch (err) {
       setMsg({ ok: false, text: 'Error: ' + err.message });
@@ -111,59 +121,45 @@ export default function ScoreForm({ employee, onBack }) {
         {/* Applicant Details */}
         <div className="card form-card">
           <h3 className="card-title">Applicant Details</h3>
-          <div className="form-grid-2">
-            <div className="field">
-              <label>Employee Name</label>
-              <input
-                type="text" placeholder="Enter employee name"
-                value={form.employee_name}
-                onChange={e => setForm(f => ({ ...f, employee_name: e.target.value }))}
-              />
+          <Form form={antForm} layout="vertical">
+            <div className="form-grid-2">
+              <Form.Item
+                label="Employee Name"
+                name="employee_name"
+                rules={[{ required: true, message: 'Employee name is required' }]}
+              >
+                <Input 
+                placeholder="Enter employee name" />
+              </Form.Item>
+              <Form.Item
+                label="Email"
+                name="email"
+                rules={[
+                  { required: true, message: 'Email is required' },
+                  { type: 'email', message: 'Enter a valid email address' }
+                ]}
+              >
+                <Input placeholder="Enter email" />
+              </Form.Item>
+              <Form.Item
+                label="Client"
+                name="client"
+                rules={[{ required: true, message: 'Client is required' }]}
+              >
+                <Input placeholder="Enter client name" />
+              </Form.Item>
+              <Form.Item
+                label="Position"
+                name="position"
+                rules={[{ required: true, message: 'Position is required' }]}
+              >
+                <Input placeholder="Position / Role" />
+              </Form.Item>
+              <Form.Item name="jd_shared" valuePropName="checked">
+                <Checkbox>Yes, Job Description was shared</Checkbox>
+              </Form.Item>
             </div>
-            <div className="field">
-              <label>Email</label>
-              <input
-                type="email" placeholder="Enter email"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>Applicant Name</label>
-              <input
-                type="text" placeholder="Enter applicant name"
-                value={form.applicant_name}
-                onChange={e => setForm(f => ({ ...f, applicant_name: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>Client</label>
-              <input
-                type="text" placeholder="Enter client name"
-                value={form.client}
-                onChange={e => setForm(f => ({ ...f, client: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>Position</label>
-              <input
-                type="text" placeholder="Position / Role"
-                value={form.position}
-                onChange={e => setForm(f => ({ ...f, position: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>JD Shared?</label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={form.jd_shared}
-                  onChange={e => setForm(f => ({ ...f, jd_shared: e.target.checked }))}
-                />
-                Yes, Job Description was shared
-              </label>
-            </div>
-          </div>
+          </Form>
         </div>
 
         {/* Scoring */}
@@ -183,7 +179,7 @@ export default function ScoreForm({ employee, onBack }) {
           </div>
 
           {params.map(p => {
-            const score   = scores[p.id] || 1;
+            const score   = scores[p.id] || 0;
             const mult    = MULT[p.weightage];
             const wtd     = score * mult;
             const maxWtd  = 5 * mult;
@@ -236,8 +232,8 @@ export default function ScoreForm({ employee, onBack }) {
           <textarea
             rows={3}
             placeholder="Add any notes or observations…"
-            value={form.remarks}
-            onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
+            value={remarks}
+            onChange={e => setRemarks(e.target.value)}
           />
         </div>
 

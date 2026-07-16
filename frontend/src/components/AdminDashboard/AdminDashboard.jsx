@@ -117,7 +117,7 @@ export default function AdminDashboard({ user, onLogout }) {
           <input
             type="text"
             className="search-input"
-            placeholder="Search by employee, applicant, client or position…"
+            placeholder="Search by employee, client or position…"
             value={search}
             onChange={e => handleSearch(e.target.value)}
           />
@@ -141,7 +141,6 @@ export default function AdminDashboard({ user, onLogout }) {
                 <tr>
                   <th>#</th>
                   <th>Employee</th>
-                  <th>Applicant Name</th>
                   <th>Client</th>
                   <th>Position</th>
                   <th>Weighted Score</th>
@@ -152,7 +151,7 @@ export default function AdminDashboard({ user, onLogout }) {
               <tbody>
                 {pageEmployees.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>
                       No results found for "<strong>{search}</strong>"
                     </td>
                   </tr>
@@ -166,7 +165,6 @@ export default function AdminDashboard({ user, onLogout }) {
                         <div className="emp-name">{emp.name}</div>
                         <div className="emp-email">{emp.email || '—'}</div>
                       </td>
-                      <td>{emp.applicant_name || <span className="muted">—</span>}</td>
                       <td>{emp.client        || <span className="muted">—</span>}</td>
                       <td>{emp.position      || <span className="muted">—</span>}</td>
                       <td>

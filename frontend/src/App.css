@@ -1,6 +1,8 @@
 /* ── Reset & base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+.ant-form-item { margin-bottom: 0 !important; }
+
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   background: #F1F5F9;
