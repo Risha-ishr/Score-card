@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Checkbox, DatePicker } from 'antd';
+import { Form, Input, Checkbox } from 'antd';
 import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../api';
 
 const MULT    = { 1: 3, 2: 2, 3: 1 };
@@ -20,7 +20,7 @@ export default function ScoreForm({ employee, onBack }) {
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
-  const jdShared = antForm.getFieldValue('jd_shared');
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -158,16 +158,7 @@ export default function ScoreForm({ employee, onBack }) {
               <Form.Item name="jd_shared" valuePropName="checked">
                 <Checkbox>Yes, Job Description was shared</Checkbox>
               </Form.Item>
-
-              {
-                jdShared === true ?
-                <div>
-                  <DatePicker />
-                  </div>
-                  : null
-              }
-              
-                  {/* <Form.Item
+                  <Form.Item
                     noStyle
                     shouldUpdate={(prevValues, currentValues) =>
                       prevValues.jd_shared !== currentValues.jd_shared
@@ -184,7 +175,7 @@ export default function ScoreForm({ employee, onBack }) {
                   </Form.Item>
                     ) : null
                   }
-              </Form.Item> */}
+              </Form.Item>
             </div>
           </Form>
         </div>
