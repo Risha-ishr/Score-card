@@ -81,7 +81,7 @@ router.get('/employees/:id/scorecard', (req, res) => {
 });
 
 router.post('/employees/:id/scorecard', async (req, res) => {
-  const { employee_name, email, applicant_name, client, position, jd_shared, remarks, scores } = req.body;
+  const { employee_name, email, applicant_name, client, position, jd_shared, jd_shared_date, remarks, scores } = req.body;
 
   if (email && !(await domainHasMx(email))) {
     return res.status(400).json({ error: 'Email domain does not exist or cannot receive emails.' });
@@ -106,15 +106,15 @@ router.post('/employees/:id/scorecard', async (req, res) => {
     if (sc) {
       db.prepare(`
         UPDATE scorecards
-        SET applicant_name=?, client=?, position=?, jd_shared=?, remarks=?,
+        SET applicant_name=?, client=?, position=?, jd_shared=?, jd_shared_date=?, remarks=?,
             updated_at=CURRENT_TIMESTAMP
         WHERE employee_id=?
-      `).run(applicant_name, client, position, jd_shared ? 1 : 0, remarks, req.params.id);
+      `).run(applicant_name, client, position, jd_shared ? 1 : 0, jd_shared_date || null, remarks, req.params.id);
     } else {
       const r = db.prepare(`
-        INSERT INTO scorecards (employee_id, applicant_name, client, position, jd_shared, remarks)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(req.params.id, applicant_name, client, position, jd_shared ? 1 : 0, remarks);
+        INSERT INTO scorecards (employee_id, applicant_name, client, position, jd_shared, jd_shared_date, remarks)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(req.params.id, applicant_name, client, position, jd_shared ? 1 : 0, jd_shared_date || null, remarks);
       sc = { id: r.lastInsertRowid };
     }
 

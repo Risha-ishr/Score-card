@@ -29,6 +29,7 @@ db.exec(`
     client TEXT,
     position TEXT,
     jd_shared INTEGER DEFAULT 0,
+    jd_shared_date TEXT,
     remarks TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

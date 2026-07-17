@@ -13,6 +13,7 @@ class ScorecardCreate(BaseModel):
     client:         Optional[str] = None
     position:       Optional[str] = None
     jd_shared:      Optional[bool] = False
+    jd_shared_date: Optional[datetime] = None
     remarks:        Optional[str] = None
     scores:         Optional[List[ScoreItem]] = []
 
@@ -23,6 +24,7 @@ class ScorecardResponse(BaseModel):
     client:         Optional[str] = None
     position:       Optional[str] = None
     jd_shared:      Optional[bool] = None
+    jd_shared_date: Optional[datetime] = None
     remarks:        Optional[str] = None
     created_at:     Optional[datetime] = None
     updated_at:     Optional[datetime] = None

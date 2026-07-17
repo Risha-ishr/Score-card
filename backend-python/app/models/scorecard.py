@@ -11,6 +11,7 @@ class Scorecard(Base):
     client         = Column(String)
     position       = Column(String)
     jd_shared      = Column(Boolean, default=False)
+    jd_shared_date = Column(DateTime(timezone=True), nullable=True)
     remarks        = Column(String)
     created_at     = Column(DateTime, server_default=func.now())
     updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())

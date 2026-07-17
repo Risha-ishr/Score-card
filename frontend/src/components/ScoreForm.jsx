@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Checkbox } from 'antd';
+import { Form, Input, Checkbox, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../api';
 
 const MULT    = { 1: 3, 2: 2, 3: 1 };
@@ -31,17 +32,19 @@ export default function ScoreForm({ employee, onBack }) {
         ]);
         setParams(pData);
 
-        const employeeName = sData.employee?.name  || employee.name  || '';
-        const email        = sData.employee?.email || employee.email || '';
+        const employeeName = sData?.employee?.name  || employee.name  || '';
+        const email        = sData?.employee?.email || employee.email || '';
 
         if (sData.scorecard) {
           const sc = sData.scorecard;
+          console.log('scorecard', dayjs(sc?.jd_shared_date).format('YYYY-MM-DD') )
           antForm.setFieldsValue({
-            employee_name: employeeName,
+            employee_name:  employeeName,
             email,
-            client:    sc.client   || '',
-            position:  sc.position || '',
-            jd_shared: !!sc.jd_shared,
+            client:         sc.client   || '',
+            position:       sc.position || '',
+            jd_shared:      !!sc.jd_shared,
+            jd_shared_date: sc.jd_shared_date ? dayjs(sc.jd_shared_date) : null,
           });
           setRemarks(sc.remarks || '');
           const m = {};
@@ -57,6 +60,7 @@ export default function ScoreForm({ employee, onBack }) {
           });
         }
       } catch (err) {
+        console.log('error', error)
         setMsg({ ok: false, text: err.message });
       }
       setLoading(false);
@@ -83,6 +87,7 @@ export default function ScoreForm({ employee, onBack }) {
         parameter_id: parseInt(pid),
         score:        parseInt(sc)
       }));
+      console.log('values...', dayjs(values.jd_shared_date).format('YYYY-MM-DD'))
       await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr });
       setMsg({ ok: true, text: 'Scorecard saved successfully!' });
     } catch (err) {
@@ -167,11 +172,14 @@ export default function ScoreForm({ employee, onBack }) {
                   {({ getFieldValue }) =>
                     getFieldValue('jd_shared') ? (
                       <Form.Item
-                        label="Date JD Shared"
+                        // label="Date JD Shared"
                         name="jd_shared_date"
-                        rules={[{ required: true, message: 'Please select the date' }]}
+                        rules={[{ required: true, message: 'Please Select JD Shared Date' }]}
                       >
-                    <DatePicker style={{ width: '100%' }} />
+                    <DatePicker 
+                    style={{ width: '100%' }} 
+                    placeholder='JD Shared Date'
+                    />
                   </Form.Item>
                     ) : null
                   }

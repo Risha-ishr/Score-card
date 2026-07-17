@@ -34,15 +34,15 @@ async def _domain_has_mx(email: str) -> bool:
         return False
 
 
-def _make_username(name: str, db: Session) -> str:
-    parts    = name.strip().lower().split()
-    base     = re.sub(r"[^a-z0-9]", "", parts[0][0] + parts[-1])
-    username = base
-    counter  = 1
-    while db.query(User).filter(User.username == username).first():
-        username = base + str(counter)
-        counter += 1
-    return username
+# def _make_username(name: str, db: Session) -> str:
+#     parts    = name.strip().lower().split()
+#     base     = re.sub(r"[^a-z0-9]", "", parts[0][0] + parts[-1])
+#     username = base
+#     counter  = 1
+#     while db.query(User).filter(User.username == username).first():
+#         username = base + str(counter)
+#         counter += 1
+#     return username
 
 
 def _upsert_score(db: Session, scorecard_id: int, parameter_id: int, score: int):
@@ -78,10 +78,10 @@ async def create_employee(
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    username = _make_username(name, db)
+    # username = _make_username(name, db)
     employee = User(
-        username = username,
-        password = hash_password("Emp@1234"),
+        # username = username,
+        # password = hash_password("Emp@1234"),
         role     = UserRole.employee,
         name     = name,
         email    = email,
@@ -190,6 +190,7 @@ def get_employee_scorecard(
     }
 
     scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+    print('scorecard..', scorecard.__dict__)
     if not scorecard:
         return {"employee": employee_data, "scorecard": None, "scores": []}
 
@@ -200,6 +201,7 @@ def get_employee_scorecard(
             Parameter.name,
             Parameter.description,
             Parameter.weightage,
+
         )
         .join(Parameter, Score.parameter_id == Parameter.id)
         .filter(Score.scorecard_id == scorecard.id)
@@ -216,6 +218,7 @@ def get_employee_scorecard(
             "client":         scorecard.client,
             "position":       scorecard.position,
             "jd_shared":      scorecard.jd_shared,
+            "jd_shared_date": scorecard.jd_shared_date,
             "remarks":        scorecard.remarks,
             "created_at":     scorecard.created_at,
             "updated_at":     scorecard.updated_at,
@@ -266,6 +269,7 @@ async def save_employee_scorecard(
         scorecard.position       = body.position
         scorecard.jd_shared      = body.jd_shared
         scorecard.remarks        = body.remarks
+        scorecard.jd_shared_date = body.jd_shared_date
         scorecard.updated_at     = func.now()
     else:
         scorecard = Scorecard(
@@ -330,11 +334,11 @@ async def upload_excel(
 
         is_new = False
         if not employee:
-            username = _make_username(applicant_name, db)
-            email    = username + "@scorecard.com"
+            # username = _make_username(applicant_name, db)
+            email    = applicant_name + "@scorecard.com"
             employee = User(
-                username = username,
-                password = hash_password("Emp@1234"),
+                # username = username,
+                # password = hash_password("Emp@1234"),
                 role     = UserRole.employee,
                 name     = applicant_name,
                 email    = email,
