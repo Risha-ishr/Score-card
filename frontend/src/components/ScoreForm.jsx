@@ -124,12 +124,12 @@ export default function ScoreForm({ employee, onBack }) {
           <Form form={antForm} layout="vertical">
             <div className="form-grid-2">
               <Form.Item
-                label="Employee Name"
+                label="Applicant Name"
                 name="employee_name"
-                rules={[{ required: true, message: 'Please Enter Employee Name!' }]}
+                rules={[{ required: true, message: 'Please Enter Applicant Name!' }]}
               >
                 <Input 
-                placeholder="Enter employee name" />
+                placeholder="Enter Applicant Name" />
               </Form.Item>
               <Form.Item
                 label="Email"
