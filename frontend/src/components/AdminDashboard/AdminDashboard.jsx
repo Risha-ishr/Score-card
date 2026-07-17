@@ -163,7 +163,10 @@ export default function AdminDashboard({ user, onLogout }) {
                       <td className="td-num">{offset + i + 1}</td>
                       <td>
                         <div className="emp-name">{emp.name}</div>
-                        <div className="emp-email">{emp.email || '—'}</div>
+                        <div className="emp-email" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => { window.location.href = `mailto:${emp.email}`; }}
+                        >{emp.email || '—'}</div>
                       </td>
                       <td>{emp.client        || <span className="muted">—</span>}</td>
                       <td>{emp.position      || <span className="muted">—</span>}</td>
