@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactPaginate from 'react-paginate';
 import { getEmployees, uploadExcel } from '../../api';
-import ScoreForm from '../ScoreForm';
+import ScoreForm from '../../components/ScoreForm';
 import AddCandidateForm from '../AddCandidateForm';
 import './AdminDashboard.scss';
 import SimpleBox from '../SimpleBox';
@@ -112,7 +112,7 @@ export default function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <div className="search-bar-wrap">
+        <div className="search-bar-wrap" style={{width:'50%'}}>
           <span className="search-icon">🔍</span>
           <input
             type="text"
@@ -124,6 +124,9 @@ export default function AdminDashboard({ user, onLogout }) {
           {search && (
             <button className="search-clear" onClick={() => { setSearch(''); loadEmployees(''); setPage(0); }}>✕</button>
           )}
+        </div>
+        <div>
+          Click to look at the TimeStamp
         </div>
 
         {uploadMsg && (
