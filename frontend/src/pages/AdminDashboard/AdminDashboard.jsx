@@ -112,7 +112,7 @@ export default function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <div className="search-bar-wrap" style={{width:'50%'}}>
+        <div className="search-bar-wrap" >
           <span className="search-icon">🔍</span>
           <input
             type="text"
