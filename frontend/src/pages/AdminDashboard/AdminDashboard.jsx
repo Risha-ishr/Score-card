@@ -126,7 +126,6 @@ export default function AdminDashboard({ user, onLogout }) {
           )}
         </div>
         <div>
-          Click to look at the TimeStamp
         </div>
 
         {uploadMsg && (
