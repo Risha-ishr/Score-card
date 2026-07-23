@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../api';
-import LineForm from './LineForm';
+import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../../api';
+import './ScoreForm.scss'
 const MULT    = { 1: 3, 2: 2, 3: 1 };
 const MAX_TOT = 115;
 
@@ -21,7 +21,16 @@ export default function ScoreForm({ employee, onBack }) {
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
-  const [chartData, setChartData] = useState([]);
+
+
+  const containerRef = useRef(null);
+  const dotRefs = useRef({}); 
+  const [linePoints, setLinePoints] = useState([]); 
+
+  const setDotRef = (paramId, n) => (el) => {
+    if (!dotRefs.current[paramId]) dotRefs.current[paramId] = {};
+    dotRefs.current[paramId][n] = el;
+  };
 
   useEffect(() => {
     (async () => {
@@ -32,15 +41,12 @@ export default function ScoreForm({ employee, onBack }) {
           getEmployeeScorecard(employee.id)
         ]);
         setParams(pData);
-        setChartData(pData?.scores)
-        console.log('sData...', sData)
 
         const employeeName = sData?.employee?.name  || employee.name  || '';
         const email        = sData?.employee?.email || employee.email || '';
 
         if (sData.scorecard) {
           const sc = sData.scorecard;
-          console.log('scorecard', dayjs(sc?.jd_shared_date).format('YYYY-MM-DD') )
           antForm.setFieldsValue({
             employee_name:  employeeName,
             email,
@@ -63,12 +69,36 @@ export default function ScoreForm({ employee, onBack }) {
           });
         }
       } catch (err) {
-        console.log('error', error)
+        console.log('error', err);
         setMsg({ ok: false, text: err.message });
       }
       setLoading(false);
     })();
   }, [employee.id]);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    const points = params.map(p => {
+      const score = scores[p.id] || 0;
+      const el = dotRefs.current[p.id]?.[score];
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2 - containerRect.left,
+        y: rect.top + rect.height / 2 - containerRect.top,
+      };
+    }).filter(Boolean);
+
+    setLinePoints(points);
+  }, [params, scores]);
+
+  useEffect(() => {
+    const handleResize = () => setScores(s => ({ ...s }));
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const weightedTotal = params.reduce((s, p) => s + (scores[p.id] || 0) * MULT[p.weightage], 0);
   const pct           = Math.round((weightedTotal / MAX_TOT) * 100);
@@ -126,7 +156,6 @@ export default function ScoreForm({ employee, onBack }) {
           </div>
         </div>
 
-        {/* Applicant Details */}
         <div className="card form-card">
           <h3 className="card-title">Applicant Details</h3>
           <Form form={antForm} layout="vertical">
@@ -136,8 +165,7 @@ export default function ScoreForm({ employee, onBack }) {
                 name="employee_name"
                 rules={[{ required: true, message: 'Please Enter Applicant Name!' }]}
               >
-                <Input 
-                placeholder="Enter Applicant Name" />
+                <Input placeholder="Enter Applicant Name" />
               </Form.Item>
               <Form.Item
                 label="Email"
@@ -166,33 +194,32 @@ export default function ScoreForm({ employee, onBack }) {
               <Form.Item name="jd_shared" valuePropName="checked">
                 <Checkbox>Yes, Job Description was shared</Checkbox>
               </Form.Item>
-                  <Form.Item
-                    noStyle
-                    shouldUpdate={(prevValues, currentValues) =>
-                      prevValues.jd_shared !== currentValues.jd_shared
-                    }
-                  >
-                  {({ getFieldValue }) =>
-                    getFieldValue('jd_shared') ? (
-                      <Form.Item
-                        // label="Date JD Shared"
-                        name="jd_shared_date"
-                        rules={[{ required: true, message: 'Please Select JD Shared Date' }]}
-                      >
-                    <DatePicker 
-                    style={{ width: '100%' }} 
-                    placeholder='JD Shared Date'
-                    />
-                  </Form.Item>
-                    ) : null
-                  }
+              <Form.Item
+                noStyle
+                shouldUpdate={(prevValues, currentValues) =>
+                  prevValues.jd_shared !== currentValues.jd_shared
+                }
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('jd_shared') ? (
+                    <Form.Item
+                      name="jd_shared_date"
+                      rules={[{ required: true, message: 'Please Select JD Shared Date' }]}
+                    >
+                      <DatePicker
+                        style={{ width: '100%' }}
+                        placeholder='JD Shared Date'
+                      />
+                    </Form.Item>
+                  ) : null
+                }
               </Form.Item>
             </div>
           </Form>
         </div>
 
         {/* Scoring */}
-        <div className="card form-card">
+        <div className="card form-card" style={{ position: 'relative' }} ref={containerRef}>
           <h3 className="card-title">Score Parameters</h3>
           <div className="params-legend">
             <span className="legend-item"><span className="w-chip w1">W1</span> Weightage 1 → ×3 (Highest)</span>
@@ -225,7 +252,8 @@ export default function ScoreForm({ employee, onBack }) {
                   {[1, 2, 3, 4, 5].map(n => (
                     <button
                       key={n}
-                      className={`dot-btn ${score === n ? 'dot-active' : ''}`}
+                      ref={setDotRef(p.id, n)}
+                      className={`dot-btn ${score === n ? 'dot-active-scoreForm' : ''}`}
                       onClick={() => setScores(s => ({ ...s, [p.id]: n }))}
                       title={`Score ${n}`}
                     >
@@ -253,9 +281,30 @@ export default function ScoreForm({ employee, onBack }) {
               </span>
             </div>
           </div>
+
+          <svg
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          >
+            <polyline
+              points={linePoints.map(pt => `${pt.x},${pt.y}`).join(' ')}
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth="3"
+            />
+            {/* {linePoints.map((pt, i) => (
+              <circle key={i} cx={pt.x} cy={pt.y} r="5" fill="#2563eb" />
+            ))} */}
+          </svg>
         </div>
 
-        {/* Remarks */}
         <div className="card form-card">
           <h3 className="card-title">Remarks</h3>
           <textarea
@@ -276,9 +325,7 @@ export default function ScoreForm({ employee, onBack }) {
             {saving ? 'Saving…' : '💾 Save Scorecard'}
           </button>
         </div>
-        {/* <LineForm scores={chartData} /> */}
       </div>
-      
     </div>
   );
 }

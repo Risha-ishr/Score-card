@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactPaginate from 'react-paginate';
 import { getEmployees, uploadExcel } from '../../api';
-import ScoreForm from '../../components/ScoreForm';
+import ScoreForm from '../ScoreForm/ScoreForm';
 import AddCandidateForm from '../AddCandidateForm';
 import './AdminDashboard.scss';
 import SimpleBox from '../SimpleBox';
