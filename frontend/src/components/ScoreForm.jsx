@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../api';
-
+import LineForm from './LineForm';
 const MULT    = { 1: 3, 2: 2, 3: 1 };
 const MAX_TOT = 115;
 
@@ -21,6 +21,7 @@ export default function ScoreForm({ employee, onBack }) {
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -31,6 +32,8 @@ export default function ScoreForm({ employee, onBack }) {
           getEmployeeScorecard(employee.id)
         ]);
         setParams(pData);
+        setChartData(pData?.scores)
+        console.log('sData...', sData)
 
         const employeeName = sData?.employee?.name  || employee.name  || '';
         const email        = sData?.employee?.email || employee.email || '';
@@ -273,7 +276,9 @@ export default function ScoreForm({ employee, onBack }) {
             {saving ? 'Saving…' : '💾 Save Scorecard'}
           </button>
         </div>
+        {/* <LineForm scores={chartData} /> */}
       </div>
+      
     </div>
   );
 }
