@@ -296,8 +296,8 @@ export default function ScoreForm({ employee, onBack }) {
             <polyline
               points={linePoints.map(pt => `${pt.x},${pt.y}`).join(' ')}
               fill="none"
-              stroke="#2563eb"
-              strokeWidth="3"
+              stroke="#8ea3cf"
+              strokeWidth="1"
             />
             {/* {linePoints.map((pt, i) => (
               <circle key={i} cx={pt.x} cy={pt.y} r="5" fill="#2563eb" />
