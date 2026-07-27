@@ -62,7 +62,7 @@ router.get('/employees', (req, res) => {
 
 router.get('/employees/:id/scorecard', (req, res) => {
   const employee = db.prepare(
-    'SELECT id, username, name, email FROM users WHERE id = ? AND role = ?'
+    'SELECT id, email FROM users WHERE id = ? AND role = ?'
   ).get(req.params.id, 'employee');
   if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
@@ -81,7 +81,7 @@ router.get('/employees/:id/scorecard', (req, res) => {
 });
 
 router.post('/employees/:id/scorecard', async (req, res) => {
-  const { employee_name, email, applicant_name, client, position, jd_shared, jd_shared_date, remarks, scores } = req.body;
+  const { email, applicant_name, client, position, jd_shared, jd_shared_date, remarks, scores } = req.body;
 
   if (email && !(await domainHasMx(email))) {
     return res.status(400).json({ error: 'Email domain does not exist or cannot receive emails.' });
@@ -93,13 +93,8 @@ router.post('/employees/:id/scorecard', async (req, res) => {
   if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
   const save = db.transaction(() => {
-    if (employee_name || email) {
-      const fields = [];
-      const vals   = [];
-      if (employee_name) { fields.push('name=?');  vals.push(employee_name.trim()); }
-      if (email)         { fields.push('email=?'); vals.push(email.trim()); }
-      vals.push(req.params.id);
-      db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id=?`).run(...vals);
+    if (email) {
+      db.prepare(`UPDATE users SET email=? WHERE id=?`).run(email.trim(), req.params.id);
     }
 
     let sc = db.prepare('SELECT id FROM scorecards WHERE employee_id = ?').get(req.params.id);

@@ -7,9 +7,8 @@ class ScoreItem(BaseModel):
     score:        int
 
 class ScorecardCreate(BaseModel):
-    employee_name:  Optional[str] = None
-    email:          Optional[str] = None
     applicant_name: Optional[str] = None
+    email:          Optional[str] = None
     client:         Optional[str] = None
     position:       Optional[str] = None
     jd_shared:      Optional[bool] = False

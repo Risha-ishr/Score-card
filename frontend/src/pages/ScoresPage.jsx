@@ -145,7 +145,7 @@ export default function ScoresPage() {
                   <tr key={emp.id}>
                     <td className="td-num">{offset + i + 1}</td>
                     <td>
-                      <div className="emp-name">{emp.name}</div>
+                      <div className="emp-name">{emp.applicant_name}</div>
                       <div
                         className="emp-email"
                         style={{ cursor: 'pointer' }}
