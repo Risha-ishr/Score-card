@@ -88,6 +88,15 @@ async def create_employee(
         email    = email,
     )
     db.add(employee)
+    db.flush()
+
+    scorecard = Scorecard(
+        employee_id         = employee.id,
+        applicant_name       = name,
+        updated_at_history   = [datetime.now(timezone.utc)],
+    )
+    db.add(scorecard)
+
     db.commit()
     db.refresh(employee)
     return {"id": employee.id, "username": employee.username, "name": employee.name, "email": employee.email}
