@@ -131,6 +131,7 @@ def get_employees(
             Scorecard.client,
             Scorecard.position,
             Scorecard.updated_at,
+            Scorecard.updated_at_history,
             func.round(cast(weighted_subq * 100.0 / 115, Numeric), 1).label("weighted_pct"),
         )
         .outerjoin(Scorecard, Scorecard.employee_id == User.id)
@@ -161,6 +162,7 @@ def get_employees(
             "client":         r.client,
             "position":       r.position,
             "updated_at":     r.updated_at,
+            "updated_at_history": r.updated_at_history,
             "weighted_pct":   float(r.weighted_pct) if r.weighted_pct is not None else None,
         }
         for r in rows
@@ -223,7 +225,6 @@ def get_employee_scorecard(
             "remarks":        scorecard.remarks,
             "created_at":     scorecard.created_at,
             "updated_at":     scorecard.updated_at,
-            "updated_at_history": scorecard.updated_at_history,
         },
         "scores": [
             {
