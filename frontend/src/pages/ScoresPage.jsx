@@ -127,7 +127,7 @@ export default function ScoresPage() {
                 <th>Client</th>
                 <th>Position</th>
                 <th>Weighted Score</th>
-                <th>Last Updated</th>
+                <th>TimeLine</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -141,15 +141,13 @@ export default function ScoresPage() {
               )}
               {pageEmployees.map((emp, i) => {
                 const ps = perfStyle(emp.weighted_pct);
-                let LastUpdatedDates = emp?.updated_at_history?.reduce((acc, item, index) => {
-                const prevPos = index === 0 ? 0 : acc[index - 1].pos;
-                acc.push({
-                  ...item,
+                console.log('emp', emp);
+                const history = emp?.updated_at_history || [];
+                let LastUpdatedDates = history.map((item, index) => ({
+                  date: item,
                   type: index === 0 ? 'start' : 'score',
-                  pos: index === 0 ? 0 : prevPos + 0.22,
-                });
-                return acc;
-              }, []);
+                  pos: history.length === 1 ? 0 : index / (history.length - 1),
+                }));
                 return (
                   <tr key={emp.id}>
                     <td className="td-num">{offset + i + 1}</td>
