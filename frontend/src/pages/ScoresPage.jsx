@@ -5,6 +5,7 @@ import { getEmployees, uploadExcel } from '../api';
 import AddCandidateForm from './AddCandidateForm';
 import SimpleBox from './SimpleBox';
 import './AdminDashboard/AdminDashboard.scss';
+import Timeline from '../components/Timeline/Timeline';
 
 const PAGE_SIZE = 10;
 
@@ -66,8 +67,7 @@ export default function ScoresPage() {
 
   const pageCount     = Math.ceil(employees.length / PAGE_SIZE);
   const offset        = page * PAGE_SIZE;
-  const pageEmployees = employees.slice(offset, offset + PAGE_SIZE);
-
+  const pageEmployees = employees.slice(offset, offset + PAGE_SIZE);  
   return (
     <div className="page">
       <div className="page-header">
@@ -141,6 +141,15 @@ export default function ScoresPage() {
               )}
               {pageEmployees.map((emp, i) => {
                 const ps = perfStyle(emp.weighted_pct);
+                let LastUpdatedDates = emp?.updated_at_history?.reduce((acc, item, index) => {
+                const prevPos = index === 0 ? 0 : acc[index - 1].pos;
+                acc.push({
+                  ...item,
+                  type: index === 0 ? 'start' : 'score',
+                  pos: index === 0 ? 0 : prevPos + 0.22,
+                });
+                return acc;
+              }, []);
                 return (
                   <tr key={emp.id}>
                     <td className="td-num">{offset + i + 1}</td>
@@ -170,10 +179,10 @@ export default function ScoresPage() {
                         <span className="muted">Not scored</span>
                       )}
                     </td>
+                    
                     <td>
-                      {emp.updated_at
-                        ? new Date(emp.updated_at).toLocaleDateString('en-IN')
-                        : <span className="muted">—</span>}
+                      <Timeline milestones={LastUpdatedDates}
+                      />
                     </td>
                     <td>
                       <button
