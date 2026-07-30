@@ -47,6 +47,7 @@ def get_my_scorecard(
             "remarks":        scorecard.remarks,
             "created_at":     scorecard.created_at,
             "updated_at":     scorecard.updated_at,
+            "updated_at_history": scorecard.updated_at_history,
         },
         "scores": [
             {

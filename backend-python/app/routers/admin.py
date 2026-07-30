@@ -2,6 +2,7 @@ import re
 import io
 import asyncio
 import socket
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, cast, Numeric, or_
@@ -222,6 +223,7 @@ def get_employee_scorecard(
             "remarks":        scorecard.remarks,
             "created_at":     scorecard.created_at,
             "updated_at":     scorecard.updated_at,
+            "updated_at_history": scorecard.updated_at_history,
         },
         "scores": [
             {
@@ -262,6 +264,8 @@ async def save_employee_scorecard(
     if body.email:
         employee.email = body.email.strip()
 
+    now = datetime.now(timezone.utc)
+
     scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
     if scorecard:
         scorecard.applicant_name = body.applicant_name
@@ -270,7 +274,8 @@ async def save_employee_scorecard(
         scorecard.jd_shared      = body.jd_shared
         scorecard.remarks        = body.remarks
         scorecard.jd_shared_date = body.jd_shared_date
-        scorecard.updated_at     = func.now()
+        scorecard.updated_at     = now
+        scorecard.updated_at_history = (scorecard.updated_at_history or []) + [now]
     else:
         scorecard = Scorecard(
             employee_id    = employee_id,
@@ -279,6 +284,7 @@ async def save_employee_scorecard(
             position       = body.position,
             jd_shared      = body.jd_shared,
             remarks        = body.remarks,
+            updated_at_history = [now],
         )
         db.add(scorecard)
         db.flush()
@@ -351,13 +357,16 @@ async def upload_excel(
         position = str(row[3]) if row[3] is not None else ""
         jd_shared = str(row[4]).lower() == "yes" if row[4] is not None else False
 
+        row_now = datetime.now(timezone.utc)
+
         scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee.id).first()
         if scorecard:
             scorecard.applicant_name = applicant_name
             scorecard.client         = client
             scorecard.position       = position
             scorecard.jd_shared      = jd_shared
-            scorecard.updated_at     = func.now()
+            scorecard.updated_at     = row_now
+            scorecard.updated_at_history = (scorecard.updated_at_history or []) + [row_now]
         else:
             scorecard = Scorecard(
                 employee_id    = employee.id,
@@ -365,6 +374,7 @@ async def upload_excel(
                 client         = client,
                 position       = position,
                 jd_shared      = jd_shared,
+                updated_at_history = [row_now],
             )
             db.add(scorecard)
             db.flush()

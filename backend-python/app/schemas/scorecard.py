@@ -28,6 +28,7 @@ class ScorecardResponse(BaseModel):
     remarks:        Optional[str] = None
     created_at:     Optional[datetime] = None
     updated_at:     Optional[datetime] = None
+    updated_at_history: Optional[List[datetime]] = None
 
     class Config:
         from_attributes = True

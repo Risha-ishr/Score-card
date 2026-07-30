@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -15,3 +16,4 @@ class Scorecard(Base):
     remarks        = Column(String)
     created_at     = Column(DateTime, server_default=func.now())
     updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at_history = Column(ARRAY(DateTime(timezone=True)), nullable=False, server_default='{}')
