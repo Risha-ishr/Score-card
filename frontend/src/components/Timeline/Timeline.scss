@@ -1,0 +1,59 @@
+.tl {
+  width: 230px;
+  max-width: 100%;
+  padding: 4px 0 2px;
+}
+.tl:hover{
+  
+}
+
+/* the horizontal track that holds the line + markers */
+.tl-track {
+  position: relative;
+  height: 20px;
+  margin: 0 6px;
+}
+
+/* the gradient line itself */
+.tl-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 3px;
+  background: #3cde7d;
+}
+
+/* a milestone marker — a plain dot sitting on the line */
+.tl-node {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid #64748B;
+  box-shadow: 0 0 0 2px #fff;
+  cursor: default;
+}
+
+/* start and end dots share the track color */
+.tl-start { border-color: #17c45c; }
+.tl-end   { border-color: #F0FDFA; }
+
+/* date labels under the track */
+.tl-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  padding: 0 2px;
+}
+
+.tl-label {
+  font-size: 10px;
+  color: #94A3B8;
+  white-space: nowrap;
+}
