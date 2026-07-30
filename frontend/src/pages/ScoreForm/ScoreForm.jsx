@@ -15,10 +15,11 @@ function perf(pct) {
 
 export default function ScoreForm({ employee, onBack }) {
   const [antForm] = Form.useForm();
-  const [params,  setParams]  = useState([]);
-  const [scores,  setScores]  = useState({});
-  const [remarks, setRemarks] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [params,       setParams]       = useState([]);
+  const [scores,       setScores]       = useState({});
+  const [remarks,      setRemarks]      = useState('');
+  const [displayName,  setDisplayName]  = useState('');
+  const [loading,      setLoading]      = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
 
@@ -42,13 +43,13 @@ export default function ScoreForm({ employee, onBack }) {
         ]);
         setParams(pData);
 
-        const employeeName = sData?.employee?.name  || employee.name  || '';
-        const email        = sData?.employee?.email || employee.email || '';
+        const email = sData?.employee?.email || employee?.email || '';
 
         if (sData.scorecard) {
           const sc = sData.scorecard;
+          setDisplayName(sc.applicant_name || '');
           antForm.setFieldsValue({
-            employee_name:  employeeName,
+            applicant_name: sc.applicant_name || '',
             email,
             client:         sc.client   || '',
             position:       sc.position || '',
@@ -60,8 +61,9 @@ export default function ScoreForm({ employee, onBack }) {
           sData.scores.forEach(s => { m[s.parameter_id] = s.score; });
           setScores({ ...m });
         } else {
+          setDisplayName('');
           antForm.setFieldsValue({
-            employee_name: employeeName,
+            applicant_name: '',
             email,
             client:    '',
             position:  '',
@@ -120,7 +122,6 @@ export default function ScoreForm({ employee, onBack }) {
         parameter_id: parseInt(pid),
         score:        parseInt(sc)
       }));
-      console.log('values...', dayjs(values.jd_shared_date).format('YYYY-MM-DD'))
       await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr });
       setMsg({ ok: true, text: 'Scorecard saved successfully!' });
     } catch (err) {
@@ -148,8 +149,7 @@ export default function ScoreForm({ employee, onBack }) {
       <div className="page">
         <div className="page-header">
           <div>
-            <h2>Score: {employee.name}</h2>
-            <p className="sub">@{employee.username}</p>
+            <h2>Score: {displayName || '—'}</h2>
           </div>
           <div className="score-badge" style={{ borderColor: p.color, color: p.color }}>
             {weightedTotal}/{MAX_TOT} ({pct}%) &mdash; {p.label}
@@ -162,7 +162,7 @@ export default function ScoreForm({ employee, onBack }) {
             <div className="form-grid-2">
               <Form.Item
                 label="Applicant Name"
-                name="employee_name"
+                name="applicant_name"
                 rules={[{ required: true, message: 'Please Enter Applicant Name!' }]}
               >
                 <Input placeholder="Enter Applicant Name" />
@@ -296,8 +296,8 @@ export default function ScoreForm({ employee, onBack }) {
             <polyline
               points={linePoints.map(pt => `${pt.x},${pt.y}`).join(' ')}
               fill="none"
-              stroke="#2563eb"
-              strokeWidth="3"
+              stroke="#8ea3cf"
+              strokeWidth="1"
             />
             {/* {linePoints.map((pt, i) => (
               <circle key={i} cx={pt.x} cy={pt.y} r="5" fill="#2563eb" />

@@ -35,15 +35,15 @@ async def _domain_has_mx(email: str) -> bool:
         return False
 
 
-# def _make_username(name: str, db: Session) -> str:
-#     parts    = name.strip().lower().split()
-#     base     = re.sub(r"[^a-z0-9]", "", parts[0][0] + parts[-1])
-#     username = base
-#     counter  = 1
-#     while db.query(User).filter(User.username == username).first():
-#         username = base + str(counter)
-#         counter += 1
-#     return username
+def _make_username(name: str, db: Session) -> str:
+    parts    = name.strip().lower().split()
+    base     = re.sub(r"[^a-z0-9]", "", parts[0][0] + parts[-1])
+    username = base
+    counter  = 1
+    while db.query(User).filter(User.username == username).first():
+        username = base + str(counter)
+        counter += 1
+    return username
 
 
 def _upsert_score(db: Session, scorecard_id: int, parameter_id: int, score: int):
@@ -79,10 +79,10 @@ async def create_employee(
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    # username = _make_username(name, db)
+    username = _make_username(name, db)
     employee = User(
-        # username = username,
-        # password = hash_password("Emp@1234"),
+        username = username,
+        password = hash_password("Emp@1234"),
         role     = UserRole.employee,
         name     = name,
         email    = email,
@@ -183,15 +183,15 @@ def get_employee_scorecard(
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
+    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+
     employee_data = {
         "id":       employee.id,
         "username": employee.username,
-        "name":     employee.name,
+        "name":     scorecard.applicant_name if scorecard else employee.name,
         "email":    employee.email,
     }
 
-    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
-    print('scorecard..', scorecard.__dict__)
     if not scorecard:
         return {"employee": employee_data, "scorecard": None, "scores": []}
 
@@ -259,8 +259,6 @@ async def save_employee_scorecard(
         if not await _domain_has_mx(body.email):
             raise HTTPException(status_code=400, detail="Email domain does not exist or cannot receive emails.")
 
-    if body.employee_name:
-        employee.name  = body.employee_name.strip()
     if body.email:
         employee.email = body.email.strip()
 
@@ -340,11 +338,11 @@ async def upload_excel(
 
         is_new = False
         if not employee:
-            # username = _make_username(applicant_name, db)
+            username = _make_username(applicant_name, db)
             email    = applicant_name + "@scorecard.com"
             employee = User(
-                # username = username,
-                # password = hash_password("Emp@1234"),
+                username = username,
+                password = hash_password("Emp@1234"),
                 role     = UserRole.employee,
                 name     = applicant_name,
                 email    = email,
