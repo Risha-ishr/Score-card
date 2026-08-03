@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
+import HTMLFlipBook from 'react-pageflip';
 import dayjs from 'dayjs';
 import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../../api';
 import './ScoreForm.scss'
@@ -13,6 +14,12 @@ function perf(pct) {
   return              { label: 'Needs Improvement',  color: '#EF4444' };
 }
 
+const BookPage = React.forwardRef(({ children }, ref) => (
+  <div className="book-page" ref={ref}>
+    <div className="book-page-content">{children}</div>
+  </div>
+));
+
 export default function ScoreForm({ employee, onBack }) {
   const [antForm] = Form.useForm();
   const [params,       setParams]       = useState([]);
@@ -22,11 +29,15 @@ export default function ScoreForm({ employee, onBack }) {
   const [loading,      setLoading]      = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
+  const [skills,     setSkills]     = useState([]);
+  const [skillInput, setSkillInput] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
+  const resumeInputRef = useRef(null);
 
 
   const containerRef = useRef(null);
-  const dotRefs = useRef({}); 
-  const [linePoints, setLinePoints] = useState([]); 
+  const dotRefs = useRef({});
+  const [linePoints, setLinePoints] = useState([]);
 
   const setDotRef = (paramId, n) => (el) => {
     if (!dotRefs.current[paramId]) dotRefs.current[paramId] = {};
@@ -105,6 +116,28 @@ export default function ScoreForm({ employee, onBack }) {
   const weightedTotal = params.reduce((s, p) => s + (scores[p.id] || 0) * MULT[p.weightage], 0);
   const pct           = Math.round((weightedTotal / MAX_TOT) * 100);
   const p             = perf(pct);
+
+  const handleSkillKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const value = skillInput.trim();
+    if (!value) return;
+    setSkills(s => (s.some(sk => sk.toLowerCase() === value.toLowerCase()) ? s : [...s, value]));
+    setSkillInput('');
+  };
+
+  const handleRemoveSkill = (skill) => {
+    setSkills(s => s.filter(sk => sk !== skill));
+  };
+
+  const handleResumeChange = (e) => {
+    setResumeFile(e.target.files?.[0] || null);
+  };
+
+  const handleRemoveResume = () => {
+    setResumeFile(null);
+    if (resumeInputRef.current) resumeInputRef.current.value = '';
+  };
 
   const handleSave = async () => {
     try {
@@ -303,6 +336,97 @@ export default function ScoreForm({ employee, onBack }) {
               <circle key={i} cx={pt.x} cy={pt.y} r="5" fill="#2563eb" />
             ))} */}
           </svg>
+        </div>
+
+        {/* Skills */}
+        <div className="card form-card">
+          <h3 className="card-title">Skills</h3>
+          <div className="form-grid-2">
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>Skills</label>
+              <input
+                type="text"
+                placeholder="Type a skill and press Enter"
+                value={skillInput}
+                onChange={e => setSkillInput(e.target.value)}
+                onKeyDown={handleSkillKeyDown}
+              />
+              {skills.length > 0 && (
+                <div className="skill-tags-wrap">
+                  {skills.map(skill => (
+                    <span key={skill} className="skill-tag">
+                      {skill}
+                      <button
+                        type="button"
+                        className="skill-tag-remove"
+                        onClick={() => handleRemoveSkill(skill)}
+                        title="Remove skill"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Resume Upload */}
+        <div className="card form-card">
+          <h3 className="card-title">Resume</h3>
+          <div className="resume-upload">
+            <input
+              ref={resumeInputRef}
+              type="file"
+              id="resume-upload-input"
+              accept=".pdf,.doc,.docx"
+              onChange={handleResumeChange}
+              hidden
+            />
+            <label htmlFor="resume-upload-input" className="btn-outline resume-upload-btn">
+              📎 Choose Resume File
+            </label>
+            {resumeFile ? (
+              <div className="resume-file-info">
+                <span className="resume-file-name">{resumeFile.name}</span>
+                <button type="button" className="resume-remove-btn" onClick={handleRemoveResume} title="Remove file">✕</button>
+              </div>
+            ) : (
+              <span className="muted">No file selected (PDF, DOC, DOCX)</span>
+            )}
+          </div>
+        </div>
+
+        {/* Resume Book Preview */}
+        <div className="card form-card">
+          <h3 className="card-title">Resume Preview</h3>
+          <div className="book-wrap">
+            <HTMLFlipBook
+              width={320}
+              height={420}
+              size="stretch"
+              minWidth={260}
+              maxWidth={420}
+              minHeight={340}
+              maxHeight={560}
+              showCover={false}
+              className="resume-book"
+            >
+              <BookPage>
+                <h4>Page 1</h4>
+                <p className="muted">Personal details will appear here once the resume is parsed.</p>
+              </BookPage>
+              <BookPage>
+                <h4>Page 2</h4>
+                <p className="muted">Experience &amp; skills will appear here once the resume is parsed.</p>
+              </BookPage>
+              <BookPage>
+                <h4>Page 3</h4>
+                <p className="muted">Education &amp; other details will appear here once the resume is parsed.</p>
+              </BookPage>
+            </HTMLFlipBook>
+          </div>
         </div>
 
         <div className="card form-card">
