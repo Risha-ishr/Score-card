@@ -3,7 +3,7 @@ import io
 import asyncio
 import socket
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, cast, Numeric, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -19,6 +19,7 @@ from app.schemas.parameter import ParameterResponse
 from app.schemas.scorecard import ScorecardCreate, ScorecardResponse, ScoreItem
 from app.auth.hashing import hash_password
 from app.auth.jwt import require_admin
+from app.services.resume_parser import extract_text, parse_resume
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -234,6 +235,9 @@ def get_employee_scorecard(
             "remarks":        scorecard.remarks,
             "created_at":     scorecard.created_at,
             "updated_at":     scorecard.updated_at,
+            "skills":         scorecard.skills or [],
+            "resume_filename": scorecard.resume_filename,
+            "resume_data":    scorecard.resume_data,
         },
         "scores": [
             {
@@ -284,6 +288,8 @@ async def save_employee_scorecard(
         scorecard.jd_shared_date = body.jd_shared_date
         scorecard.updated_at     = now
         scorecard.updated_at_history = (scorecard.updated_at_history or []) + [now]
+        if body.skills is not None:
+            scorecard.skills = body.skills
     else:
         scorecard = Scorecard(
             employee_id    = employee_id,
@@ -293,6 +299,7 @@ async def save_employee_scorecard(
             jd_shared      = body.jd_shared,
             remarks        = body.remarks,
             updated_at_history = [now],
+            skills         = body.skills or [],
         )
         db.add(scorecard)
         db.flush()
@@ -303,6 +310,91 @@ async def save_employee_scorecard(
 
     db.commit()
     return {"success": True, "scorecard_id": scorecard.id}
+
+
+# ── POST /api/admin/employees/{id}/resume (upload + parse) ──────────────────
+
+RESUME_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+
+@router.post("/employees/{employee_id}/resume")
+async def upload_resume(
+    employee_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    employee = (
+        db.query(User)
+        .filter(User.id == employee_id, User.role == UserRole.employee)
+        .first()
+    )
+    if not employee:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
+
+    filename = file.filename or "resume"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ("pdf", "docx"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF or DOCX resumes are supported (legacy .doc is not).",
+        )
+
+    content = await file.read()
+    if len(content) > RESUME_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Resume file is too large (max 10 MB).")
+
+    try:
+        text = extract_text(content, filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    parsed = parse_resume(text)
+
+    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+    if not scorecard:
+        scorecard = Scorecard(employee_id=employee_id, updated_at_history=[])
+        db.add(scorecard)
+        db.flush()
+
+    existing_skills = {s.lower(): s for s in (scorecard.skills or [])}
+    for skill in parsed["skills"]:
+        if skill.lower() not in existing_skills:
+            existing_skills[skill.lower()] = skill
+
+    scorecard.resume_filename     = filename
+    scorecard.resume_content_type = file.content_type
+    scorecard.resume_file         = content
+    scorecard.resume_text         = text
+    scorecard.resume_data         = parsed
+    scorecard.skills              = list(existing_skills.values())
+
+    db.commit()
+
+    return {
+        "success":  True,
+        "filename": filename,
+        "parsed":   parsed,
+        "skills":   scorecard.skills,
+    }
+
+
+# ── GET /api/admin/employees/{id}/resume/file (download stored resume) ──────
+
+@router.get("/employees/{employee_id}/resume/file")
+def get_resume_file(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+    if not scorecard or not scorecard.resume_file:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume uploaded")
+
+    return Response(
+        content=scorecard.resume_file,
+        media_type=scorecard.resume_content_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{scorecard.resume_filename}"'},
+    )
 
 
 # ── POST /api/admin/upload-excel ─────────────────────────────────────────────

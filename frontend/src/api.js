@@ -56,3 +56,21 @@ export const uploadExcel = (file) => {
 
 export const getMyScorecard = () =>
   request('/employee/scorecard', { headers: headers() });
+
+export const uploadResume = (id, file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return request(`/admin/employees/${id}/resume`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    body: form
+  });
+};
+
+export const fetchResumeFile = async (id) => {
+  const res = await fetch(`${BASE}/admin/employees/${id}/resume/file`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch resume file');
+  return res.blob();
+};

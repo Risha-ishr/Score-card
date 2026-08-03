@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import HTMLFlipBook from 'react-pageflip';
 import dayjs from 'dayjs';
-import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../../api';
+import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile } from '../../api';
 import './ScoreForm.scss'
 const MULT    = { 1: 3, 2: 2, 3: 1 };
 const MAX_TOT = 115;
@@ -32,6 +32,9 @@ export default function ScoreForm({ employee, onBack }) {
   const [skills,     setSkills]     = useState([]);
   const [skillInput, setSkillInput] = useState('');
   const [resumeFile, setResumeFile] = useState(null);
+  const [resumeName, setResumeName] = useState('');
+  const [resumeData, setResumeData] = useState(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
   const resumeInputRef = useRef(null);
 
 
@@ -68,6 +71,9 @@ export default function ScoreForm({ employee, onBack }) {
             jd_shared_date: sc.jd_shared_date ? dayjs(sc.jd_shared_date) : null,
           });
           setRemarks(sc.remarks || '');
+          setSkills(sc.skills || []);
+          setResumeName(sc.resume_filename || '');
+          setResumeData(sc.resume_data || null);
           const m = {};
           sData.scores.forEach(s => { m[s.parameter_id] = s.score; });
           setScores({ ...m });
@@ -130,13 +136,40 @@ export default function ScoreForm({ employee, onBack }) {
     setSkills(s => s.filter(sk => sk !== skill));
   };
 
-  const handleResumeChange = (e) => {
-    setResumeFile(e.target.files?.[0] || null);
+  const handleResumeChange = async (e) => {
+    const file = e.target.files?.[0] || null;
+    setResumeFile(file);
+    if (!file) return;
+
+    setResumeUploading(true);
+    setMsg(null);
+    try {
+      const res = await uploadResume(employee.id, file);
+      setResumeName(res.filename);
+      setResumeData(res.parsed);
+      setSkills(res.skills || []);
+      setMsg({ ok: true, text: 'Resume parsed successfully.' });
+    } catch (err) {
+      setMsg({ ok: false, text: 'Resume upload failed: ' + err.message });
+      setResumeFile(null);
+      if (resumeInputRef.current) resumeInputRef.current.value = '';
+    }
+    setResumeUploading(false);
   };
 
   const handleRemoveResume = () => {
     setResumeFile(null);
     if (resumeInputRef.current) resumeInputRef.current.value = '';
+  };
+
+  const handleViewResume = async () => {
+    try {
+      const blob = await fetchResumeFile(employee.id);
+      const url  = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      setMsg({ ok: false, text: 'Could not open resume: ' + err.message });
+    }
   };
 
   const handleSave = async () => {
@@ -155,7 +188,7 @@ export default function ScoreForm({ employee, onBack }) {
         parameter_id: parseInt(pid),
         score:        parseInt(sc)
       }));
-      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr });
+      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr, skills });
       setMsg({ ok: true, text: 'Scorecard saved successfully!' });
     } catch (err) {
       setMsg({ ok: false, text: 'Error: ' + err.message });
@@ -380,20 +413,26 @@ export default function ScoreForm({ employee, onBack }) {
               ref={resumeInputRef}
               type="file"
               id="resume-upload-input"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,.docx"
               onChange={handleResumeChange}
+              disabled={resumeUploading}
               hidden
             />
             <label htmlFor="resume-upload-input" className="btn-outline resume-upload-btn">
-              📎 Choose Resume File
+              📎 {resumeUploading ? 'Uploading…' : 'Choose Resume File'}
             </label>
             {resumeFile ? (
               <div className="resume-file-info">
                 <span className="resume-file-name">{resumeFile.name}</span>
                 <button type="button" className="resume-remove-btn" onClick={handleRemoveResume} title="Remove file">✕</button>
               </div>
+            ) : resumeName ? (
+              <div className="resume-file-info">
+                <span className="resume-file-name">{resumeName}</span>
+                <button type="button" className="btn-outline" onClick={handleViewResume}>View</button>
+              </div>
             ) : (
-              <span className="muted">No file selected (PDF, DOC, DOCX)</span>
+              <span className="muted">No file selected (PDF, DOCX)</span>
             )}
           </div>
         </div>
@@ -414,16 +453,53 @@ export default function ScoreForm({ employee, onBack }) {
               className="resume-book"
             >
               <BookPage>
-                <h4>Page 1</h4>
-                <p className="muted">Personal details will appear here once the resume is parsed.</p>
+                <h4>Personal Details</h4>
+                {resumeData ? (
+                  <>
+                    <p>{resumeData.name || '—'}</p>
+                    <p>{resumeData.email || '—'}</p>
+                    <p>{resumeData.phone || '—'}</p>
+                    {resumeData.summary && <p className="muted">{resumeData.summary}</p>}
+                  </>
+                ) : (
+                  <p className="muted">Personal details will appear here once the resume is parsed.</p>
+                )}
               </BookPage>
               <BookPage>
-                <h4>Page 2</h4>
-                <p className="muted">Experience &amp; skills will appear here once the resume is parsed.</p>
+                <h4>Experience &amp; Skills</h4>
+                {resumeData ? (
+                  <>
+                    {resumeData.experience?.length > 0 && (
+                      <ul>{resumeData.experience.map((line, i) => <li key={i}>{line}</li>)}</ul>
+                    )}
+                    {resumeData.skills?.length > 0 && (
+                      <p>{resumeData.skills.join(', ')}</p>
+                    )}
+                    {!resumeData.experience?.length && !resumeData.skills?.length && (
+                      <p className="muted">No experience or skills detected in this resume.</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="muted">Experience &amp; skills will appear here once the resume is parsed.</p>
+                )}
               </BookPage>
               <BookPage>
-                <h4>Page 3</h4>
-                <p className="muted">Education &amp; other details will appear here once the resume is parsed.</p>
+                <h4>Education &amp; Other</h4>
+                {resumeData ? (
+                  <>
+                    {resumeData.education?.length > 0 && (
+                      <ul>{resumeData.education.map((line, i) => <li key={i}>{line}</li>)}</ul>
+                    )}
+                    {resumeData.certifications?.length > 0 && (
+                      <p>{resumeData.certifications.join(', ')}</p>
+                    )}
+                    {!resumeData.education?.length && !resumeData.certifications?.length && (
+                      <p className="muted">No education details detected in this resume.</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="muted">Education &amp; other details will appear here once the resume is parsed.</p>
+                )}
               </BookPage>
             </HTMLFlipBook>
           </div>

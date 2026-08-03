@@ -15,6 +15,7 @@ class ScorecardCreate(BaseModel):
     jd_shared_date: Optional[datetime] = None
     remarks:        Optional[str] = None
     scores:         Optional[List[ScoreItem]] = []
+    skills:         Optional[List[str]] = None
 
 class ScorecardResponse(BaseModel):
     id:             int
@@ -28,6 +29,9 @@ class ScorecardResponse(BaseModel):
     created_at:     Optional[datetime] = None
     updated_at:     Optional[datetime] = None
     updated_at_history: Optional[List[datetime]] = None
+    skills:         Optional[List[str]] = None
+    resume_filename: Optional[str] = None
+    resume_data:    Optional[dict] = None
 
     class Config:
         from_attributes = True
