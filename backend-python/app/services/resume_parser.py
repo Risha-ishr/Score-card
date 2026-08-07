@@ -4,6 +4,11 @@ import re
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 PHONE_RE = re.compile(r"(?:\+?\d{1,3}[\s\-.]?)?(?:\(?\d{2,4}\)?[\s\-.]?)?\d{3,4}[\s\-.]?\d{3,4}")
 
+# Some PDFs embed fonts without a ToUnicode map; pdfplumber then falls back to
+# emitting the raw glyph id as literal "(cid:N)" text instead of a character
+# (most often where the source PDF used a custom bullet/symbol glyph).
+CID_ARTIFACT_RE = re.compile(r"\(cid:\d+\)")
+
 SECTION_HEADINGS = {
     "education":  ["education", "academic background", "academics", "qualification"],
     "experience": ["experience", "work experience", "employment history", "professional experience", "work history"],
@@ -12,21 +17,6 @@ SECTION_HEADINGS = {
     "projects":   ["projects", "personal projects"],
     "certifications": ["certifications", "certificates", "licenses"],
 }
-
-SKILL_KEYWORDS = [
-    "python", "java", "javascript", "typescript", "c++", "c#", "go", "golang", "rust", "php", "ruby",
-    "react", "react native", "angular", "vue", "next.js", "node.js", "node", "express", "django", "flask",
-    "fastapi", "spring", "spring boot", ".net", "html", "css", "sass", "tailwind", "bootstrap",
-    "sql", "postgresql", "mysql", "mongodb", "redis", "sqlite", "oracle", "nosql",
-    "aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins", "ci/cd", "git", "github", "gitlab",
-    "linux", "bash", "powershell", "rest api", "graphql", "microservices", "kafka", "rabbitmq",
-    "machine learning", "deep learning", "nlp", "data science", "pandas", "numpy", "tensorflow", "pytorch",
-    "scikit-learn", "excel", "power bi", "tableau", "figma", "photoshop",
-    "agile", "scrum", "jira", "communication", "leadership", "teamwork", "problem solving",
-    "project management", "time management", "recruitment", "talent acquisition", "sourcing",
-    "stakeholder management", "customer service", "sales", "negotiation",
-]
-
 
 def extract_text(content: bytes, filename: str) -> str:
     ext = (filename.rsplit(".", 1)[-1] if "." in filename else "").lower()
@@ -37,7 +27,9 @@ def extract_text(content: bytes, filename: str) -> str:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
             for page in pdf.pages:
                 text_parts.append(page.extract_text() or "")
-        return "\n".join(text_parts)
+        text = "\n".join(text_parts)
+        text = CID_ARTIFACT_RE.sub("", text)
+        return text
 
     if ext == "docx":
         import docx
@@ -84,13 +76,20 @@ def _guess_name(lines, email):
     return None
 
 
-def _guess_skills(text: str, skills_section_lines):
-    found = set()
+def _match_keywords(text: str, keywords):
     lower_text = text.lower()
-    for kw in SKILL_KEYWORDS:
-        pattern = r"(?<![a-z0-9+#.])" + re.escape(kw) + r"(?![a-z0-9+#])"
-        if re.search(pattern, lower_text):
-            found.add(kw)
+    matched, unmatched = [], []
+    for kw in (keywords or []):
+        kw = kw.strip()
+        if not kw:
+            continue
+        pattern = r"(?<![a-z0-9+#.])" + re.escape(kw.lower()) + r"(?![a-z0-9+#])"
+        (matched if re.search(pattern, lower_text) else unmatched).append(kw)
+    return matched, unmatched
+
+
+def _guess_skills(skills_section_lines, matched_keywords):
+    found = set(matched_keywords)
 
     for line in skills_section_lines:
         for token in re.split(r"[,|••/]", line):
@@ -101,7 +100,7 @@ def _guess_skills(text: str, skills_section_lines):
     return sorted(found)
 
 
-def parse_resume(text: str) -> dict:
+def parse_resume(text: str, keywords=None) -> dict:
     lines = [l for l in text.splitlines()]
     non_empty = [l for l in lines if l.strip()]
 
@@ -113,13 +112,16 @@ def parse_resume(text: str) -> dict:
 
     name = _guess_name(non_empty, email)
     sections = _split_sections(lines)
-    skills = _guess_skills(text, sections["skills"])
+    matched_keywords, unmatched_keywords = _match_keywords(text, keywords)
+    skills = _guess_skills(sections["skills"], matched_keywords)
 
     return {
         "name": name,
         "email": email,
         "phone": phone,
         "skills": skills,
+        "matched_keywords": matched_keywords,
+        "unmatched_keywords": unmatched_keywords,
         "education": sections["education"],
         "experience": sections["experience"],
         "summary": " ".join(sections["summary"]) or None,

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import HTMLFlipBook from 'react-pageflip';
 import dayjs from 'dayjs';
-import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile } from '../../api';
+import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile, getResumeParsed } from '../../api';
 import './ScoreForm.scss'
 const MULT    = { 1: 3, 2: 2, 3: 1 };
 const MAX_TOT = 115;
@@ -34,6 +34,7 @@ export default function ScoreForm({ employee, onBack }) {
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeName, setResumeName] = useState('');
   const [resumeData, setResumeData] = useState(null);
+  const [matchedKeywords, setMatchedKeywords] = useState([]);
   const [resumeUploading, setResumeUploading] = useState(false);
   const resumeInputRef = useRef(null);
 
@@ -73,7 +74,25 @@ export default function ScoreForm({ employee, onBack }) {
           setRemarks(sc.remarks || '');
           setSkills(sc.skills || []);
           setResumeName(sc.resume_filename || '');
-          setResumeData(sc.resume_data || null);
+          // setResumeData(sc.resume_data || null);
+          setMatchedKeywords([]);
+
+          // The scorecard payload only carries the raw resume_data blob; fetch
+          // the dedicated parsed-resume endpoint for the fuller picture (skills
+          // reconciled with saved ones, plus matched/unmatched keywords) when a
+          // resume is on file.
+          if (sc.resume_data) {
+            try {
+              const parsedRes = await getResumeParsed(employee.id);
+              setResumeData(parsedRes.resume_data || null);
+              setSkills(parsedRes.skills || sc.skills || []);
+              setMatchedKeywords(parsedRes.matched_keywords || []);
+            } catch (err) {
+              // Fall back silently to the data already set from the scorecard payload.
+              console.log('error:', err)
+            }
+          }
+
           const m = {};
           sData.scores.forEach(s => { m[s.parameter_id] = s.score; });
           setScores({ ...m });
@@ -132,8 +151,22 @@ export default function ScoreForm({ employee, onBack }) {
     setSkillInput('');
   };
 
-  const handleRemoveSkill = (skill) => {
-    setSkills(s => s.filter(sk => sk !== skill));
+  const handleRemoveSkill = async (skill) => {
+    const prevSkills = skills;
+    const nextSkills = skills.filter(sk => sk !== skill);
+    setSkills(nextSkills);
+
+    try {
+      const values    = antForm.getFieldsValue();
+      const scoresArr = Object.entries(scores).map(([pid, sc]) => ({
+        parameter_id: parseInt(pid),
+        score:        parseInt(sc)
+      }));
+      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr, skills: nextSkills });
+    } catch (err) {
+      setSkills(prevSkills);
+      setMsg({ ok: false, text: 'Failed to remove skill: ' + err.message });
+    }
   };
 
   const handleResumeChange = async (e) => {
@@ -148,6 +181,7 @@ export default function ScoreForm({ employee, onBack }) {
       setResumeName(res.filename);
       setResumeData(res.parsed);
       setSkills(res.skills || []);
+      setMatchedKeywords(res.parsed?.matched_keywords || []);
       setMsg({ ok: true, text: 'Resume parsed successfully.' });
     } catch (err) {
       setMsg({ ok: false, text: 'Resume upload failed: ' + err.message });
@@ -386,20 +420,31 @@ export default function ScoreForm({ employee, onBack }) {
               />
               {skills.length > 0 && (
                 <div className="skill-tags-wrap">
-                  {skills.map(skill => (
-                    <span key={skill} className="skill-tag">
-                      {skill}
-                      <button
-                        type="button"
-                        className="skill-tag-remove"
-                        onClick={() => handleRemoveSkill(skill)}
-                        title="Remove skill"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
+                  {skills.map(skill => {
+                    const fromResume = matchedKeywords.some(k => k.toLowerCase() === skill.toLowerCase());
+                    return (
+                      <span key={skill} className={`skill-tag${fromResume ? ' skill-tag-matched' : ''}`}>
+                        {fromResume && (
+                          <span className="skill-tag-check" title="Found in resume">✓</span>
+                        )}
+                        {skill}
+                        <button
+                          type="button"
+                          className="skill-tag-remove"
+                          onClick={() => handleRemoveSkill(skill)}
+                          title="Remove skill"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
+              )}
+              {matchedKeywords.length > 0 && (
+                <p className="skill-tags-hint muted">
+                  <span className="skill-tag-check" aria-hidden="true">✓</span> found in resume
+                </p>
               )}
             </div>
           </div>
@@ -465,40 +510,50 @@ export default function ScoreForm({ employee, onBack }) {
                   <p className="muted">Personal details will appear here once the resume is parsed.</p>
                 )}
               </BookPage>
+
               <BookPage>
-                <h4>Experience &amp; Skills</h4>
+                <h4>Education</h4>
                 {resumeData ? (
-                  <>
-                    {resumeData.experience?.length > 0 && (
-                      <ul>{resumeData.experience.map((line, i) => <li key={i}>{line}</li>)}</ul>
-                    )}
-                    {resumeData.skills?.length > 0 && (
-                      <p>{resumeData.skills.join(', ')}</p>
-                    )}
-                    {!resumeData.experience?.length && !resumeData.skills?.length && (
-                      <p className="muted">No experience or skills detected in this resume.</p>
-                    )}
-                  </>
+                  resumeData.education?.length > 0 ? (
+                    <ul>{resumeData.education.map((line, i) => <li key={i}>{line}</li>)}</ul>
+                  ) : (
+                    <p className="muted">No education details detected in this resume.</p>
+                  )
                 ) : (
-                  <p className="muted">Experience &amp; skills will appear here once the resume is parsed.</p>
+                  <p className="muted">Education details will appear here once the resume is parsed.</p>
                 )}
               </BookPage>
+
+
               <BookPage>
-                <h4>Education &amp; Other</h4>
+                <h4>Matched Keywords</h4>
                 {resumeData ? (
-                  <>
-                    {resumeData.education?.length > 0 && (
-                      <ul>{resumeData.education.map((line, i) => <li key={i}>{line}</li>)}</ul>
-                    )}
-                    {resumeData.certifications?.length > 0 && (
-                      <p>{resumeData.certifications.join(', ')}</p>
-                    )}
-                    {!resumeData.education?.length && !resumeData.certifications?.length && (
-                      <p className="muted">No education details detected in this resume.</p>
-                    )}
-                  </>
+                  resumeData.matched_keywords?.length > 0 ? (
+                    <div className="skill-tags-wrap">
+                      {resumeData.matched_keywords.map((kw, i) => (
+                        <span key={i} className="skill-tag skill-tag-matched">{kw}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">No matched keywords for this resume.</p>
+                  )
                 ) : (
-                  <p className="muted">Education &amp; other details will appear here once the resume is parsed.</p>
+                  <p className="muted">Matched keywords will appear here once the resume is parsed.</p>
+                )}
+              </BookPage>
+
+              <BookPage>
+                <h4>Unmatched Keywords</h4>
+                {resumeData ? (
+                  resumeData.unmatched_keywords?.length > 0 ? (
+                    <div className="skill-tags-wrap">
+                      {resumeData.unmatched_keywords.map((kw, i) => <span key={i} className="skill-tag">{kw}</span>)}
+                    </div>
+                  ) : (
+                    <p className="muted">No unmatched keywords for this resume.</p>
+                  )
+                ) : (
+                  <p className="muted">Unmatched keywords will appear here once the resume is parsed.</p>
                 )}
               </BookPage>
             </HTMLFlipBook>

@@ -69,6 +69,28 @@
 
 .skill-tag-remove:hover { background: #BFDBFE; }
 
+.skill-tag-matched {
+    background: #ECFDF5;
+    color: #059669;
+    border-color: #A7F3D0;
+}
+
+.skill-tag-matched .skill-tag-remove { color: #059669; }
+.skill-tag-matched .skill-tag-remove:hover { background: #A7F3D0; }
+
+.skill-tag-check {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.skill-tags-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
 .resume-upload {
     display: flex;
     align-items: center;

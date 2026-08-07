@@ -348,8 +348,6 @@ async def upload_resume(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    parsed = parse_resume(text)
-
     scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
     if not scorecard:
         scorecard = Scorecard(employee_id=employee_id, updated_at_history=[])
@@ -357,6 +355,7 @@ async def upload_resume(
         db.flush()
 
     existing_skills = {s.lower(): s for s in (scorecard.skills or [])}
+    parsed = parse_resume(text, keywords=list(existing_skills.values()))
     for skill in parsed["skills"]:
         if skill.lower() not in existing_skills:
             existing_skills[skill.lower()] = skill
@@ -395,6 +394,29 @@ def get_resume_file(
         media_type=scorecard.resume_content_type or "application/octet-stream",
         headers={"Content-Disposition": f'inline; filename="{scorecard.resume_filename}"'},
     )
+
+
+# ── GET /api/admin/employees/{id}/resume/parsed (resume parsing result) ─────
+
+@router.get("/employees/{employee_id}/resume/parsed")
+def get_resume_parsed(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+    if not scorecard or not scorecard.resume_data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No parsed resume data")
+
+    parsed = scorecard.resume_data or {}
+
+    return {
+        "resume_filename":     scorecard.resume_filename,
+        "resume_data":         parsed,
+        "skills":              scorecard.skills or [],
+        "matched_keywords":    parsed.get("matched_keywords", []),
+        "unmatched_keywords":  parsed.get("unmatched_keywords", []),
+    }
 
 
 # ── POST /api/admin/upload-excel ─────────────────────────────────────────────
