@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
-import HTMLFlipBook from 'react-pageflip';
 import dayjs from 'dayjs';
 import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile, getResumeParsed } from '../../api';
+import ResumeBook from '../../components/ResumeBook/ResumeBook';
 import './ScoreForm.scss'
+import ResumeBook1 from '../../components/ResumeBook/ResumeBook1';
 const MULT    = { 1: 3, 2: 2, 3: 1 };
 const MAX_TOT = 115;
 
@@ -13,12 +14,6 @@ function perf(pct) {
   if (pct >= 40) return { label: 'Average',            color: '#F59E0B' };
   return              { label: 'Needs Improvement',  color: '#EF4444' };
 }
-
-const BookPage = React.forwardRef(({ children }, ref) => (
-  <div className="book-page" ref={ref}>
-    <div className="book-page-content">{children}</div>
-  </div>
-));
 
 export default function ScoreForm({ employee, onBack }) {
   const [antForm] = Form.useForm();
@@ -483,82 +478,8 @@ export default function ScoreForm({ employee, onBack }) {
         </div>
 
         {/* Resume Book Preview */}
-        <div className="card form-card">
-          <h3 className="card-title">Resume Preview</h3>
-          <div className="book-wrap">
-            <HTMLFlipBook
-              width={320}
-              height={420}
-              size="stretch"
-              minWidth={260}
-              maxWidth={420}
-              minHeight={340}
-              maxHeight={560}
-              showCover={false}
-              className="resume-book"
-            >
-              <BookPage>
-                <h4>Personal Details</h4>
-                {resumeData ? (
-                  <>
-                    <p>{resumeData.name || '—'}</p>
-                    <p>{resumeData.email || '—'}</p>
-                    <p>{resumeData.phone || '—'}</p>
-                    {resumeData.summary && <p className="muted">{resumeData.summary}</p>}
-                  </>
-                ) : (
-                  <p className="muted">Personal details will appear here once the resume is parsed.</p>
-                )}
-              </BookPage>
-
-              <BookPage>
-                <h4>Education</h4>
-                {resumeData ? (
-                  resumeData.education?.length > 0 ? (
-                    <ul>{resumeData.education.map((line, i) => <li key={i}>{line}</li>)}</ul>
-                  ) : (
-                    <p className="muted">No education details detected in this resume.</p>
-                  )
-                ) : (
-                  <p className="muted">Education details will appear here once the resume is parsed.</p>
-                )}
-              </BookPage>
-
-
-              <BookPage>
-                <h4>Matched Keywords</h4>
-                {resumeData ? (
-                  resumeData.matched_keywords?.length > 0 ? (
-                    <div className="skill-tags-wrap">
-                      {resumeData.matched_keywords.map((kw, i) => (
-                        <span key={i} className="skill-tag skill-tag-matched">{kw}</span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="muted">No matched keywords for this resume.</p>
-                  )
-                ) : (
-                  <p className="muted">Matched keywords will appear here once the resume is parsed.</p>
-                )}
-              </BookPage>
-
-              <BookPage>
-                <h4>Unmatched Keywords</h4>
-                {resumeData ? (
-                  resumeData.unmatched_keywords?.length > 0 ? (
-                    <div className="skill-tags-wrap">
-                      {resumeData.unmatched_keywords.map((kw, i) => <span key={i} className="skill-tag">{kw}</span>)}
-                    </div>
-                  ) : (
-                    <p className="muted">No unmatched keywords for this resume.</p>
-                  )
-                ) : (
-                  <p className="muted">Unmatched keywords will appear here once the resume is parsed.</p>
-                )}
-              </BookPage>
-            </HTMLFlipBook>
-          </div>
-        </div>
+        {/* <ResumeBook resumeData={resumeData} /> */}
+        <ResumeBook1 resumeData={resumeData} />
 
         <div className="card form-card">
           <h3 className="card-title">Remarks</h3>
