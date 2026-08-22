@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile, getResumeParsed } from '../../api';
+import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile, getResumeParsed, matchResumeKeywords } from '../../api';
 import ResumeBook from '../../components/ResumeBook/ResumeBook';
 import './ScoreForm.scss'
 import ResumeBook1 from '../../components/ResumeBook/ResumeBook1';
@@ -31,6 +31,7 @@ export default function ScoreForm({ employee, onBack }) {
   const [resumeData, setResumeData] = useState(null);
   const [matchedKeywords, setMatchedKeywords] = useState([]);
   const [resumeUploading, setResumeUploading] = useState(false);
+  const [matching, setMatching] = useState(false);
   const resumeInputRef = useRef(null);
 
 
@@ -177,13 +178,27 @@ export default function ScoreForm({ employee, onBack }) {
       setResumeData(res.parsed);
       setSkills(res.skills || []);
       setMatchedKeywords(res.parsed?.matched_keywords || []);
-      setMsg({ ok: true, text: 'Resume parsed successfully.' });
+      setMsg({ ok: true, text: 'Resume uploaded. Add skills, then click "Match Resume to Skills".' });
     } catch (err) {
       setMsg({ ok: false, text: 'Resume upload failed: ' + err.message });
       setResumeFile(null);
       if (resumeInputRef.current) resumeInputRef.current.value = '';
     }
     setResumeUploading(false);
+  };
+
+  const handleMatchKeywords = async () => {
+    setMatching(true);
+    setMsg(null);
+    try {
+      const res = await matchResumeKeywords(employee.id);
+      setResumeData((prev) => ({ ...(prev || {}), ...res.resume_data }));
+      setMatchedKeywords(res.matched_keywords || []);
+      setMsg({ ok: true, text: 'Resume matched against skills.' });
+    } catch (err) {
+      setMsg({ ok: false, text: 'Could not match resume: ' + err.message });
+    }
+    setMatching(false);
   };
 
   const handleRemoveResume = () => {
@@ -475,6 +490,16 @@ export default function ScoreForm({ employee, onBack }) {
               <span className="muted">No file selected (PDF, DOCX)</span>
             )}
           </div>
+          <button
+            type="button"
+            className="btn-outline"
+            style={{ marginTop: 12 }}
+            onClick={handleMatchKeywords}
+            disabled={!resumeName || skills.length === 0 || matching}
+            title={!resumeName ? 'Upload a resume first' : skills.length === 0 ? 'Add skills first' : ''}
+          >
+            {matching ? 'Matching…' : '🔍 Match Resume to Skills'}
+          </button>
         </div>
 
         {/* Resume Book Preview */}

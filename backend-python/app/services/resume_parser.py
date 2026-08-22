@@ -76,7 +76,7 @@ def _guess_name(lines, email):
     return None
 
 
-def _match_keywords(text: str, keywords):
+def match_keywords(text: str, keywords):
     lower_text = text.lower()
     matched, unmatched = [], []
     for kw in (keywords or []):
@@ -112,7 +112,7 @@ def parse_resume(text: str, keywords=None) -> dict:
 
     name = _guess_name(non_empty, email)
     sections = _split_sections(lines)
-    matched_keywords, unmatched_keywords = _match_keywords(text, keywords)
+    matched_keywords, unmatched_keywords = match_keywords(text, keywords)
     skills = _guess_skills(sections["skills"], matched_keywords)
 
     return {

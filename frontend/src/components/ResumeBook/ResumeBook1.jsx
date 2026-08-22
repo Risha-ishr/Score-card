@@ -1,5 +1,7 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import HTMLFlipBook from 'react-pageflip';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import './ResumeBook.scss';
 
 const PAGE_HEIGHT = 300;
 // Reserve space for heading/padding inside .page-content
@@ -77,6 +79,61 @@ const BookPage = React.forwardRef(({ children }, ref) => (
   </div>
 ));
 
+const KEYWORD_COLORS = { matched: '#059669', unmatched: '#2563EB' };
+
+function KeywordMatchDonut({ matchedCount, unmatchedCount }) {
+  const total = matchedCount + unmatchedCount;
+
+  if (total === 0) {
+    return <p className="muted">No keyword match data available for this resume.</p>;
+  }
+
+  const data = [
+    { name: 'Matched', value: matchedCount, color: KEYWORD_COLORS.matched },
+    { name: 'Unmatched', value: unmatchedCount, color: KEYWORD_COLORS.unmatched },
+  ];
+  const matchPct = Math.round((matchedCount / total) * 100);
+
+  return (
+    <>
+      <div className="keyword-donut-chart">
+        <ResponsiveContainer width="100%" height={180}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={45}
+              outerRadius={70}
+              paddingAngle={2}
+              stroke="none"
+            >
+              {data.map((entry) => (
+                <Cell key={entry.name} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value, name) => [`${value} keyword${value === 1 ? '' : 's'}`, name]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="keyword-donut-center">
+          <strong>{matchPct}%</strong>
+          <span>match</span>
+        </div>
+      </div>
+      <div className="keyword-donut-stats">
+        <span className="keyword-donut-stat">
+          <span className="keyword-donut-dot" style={{ background: KEYWORD_COLORS.matched }} />
+          Matched: {matchedCount}
+        </span>
+        <span className="keyword-donut-stat">
+          <span className="keyword-donut-dot" style={{ background: KEYWORD_COLORS.unmatched }} />
+          Unmatched: {unmatchedCount}
+        </span>
+      </div>
+    </>
+  );
+}
+
 const ResumeBook1 = ({ resumeData }) => {
   // loading - content loading, success - content ready, no-pages - no content, error - failed
   const [pagesStatus, setPagesStatus] = useState('loading');
@@ -108,8 +165,11 @@ const ResumeBook1 = ({ resumeData }) => {
     const workExperienceText = buildWorkExperienceText(resumeData);
     const matchedSkillsText = buildMatchedSkillsText(resumeData);
 
+    const hasKeywordStats =
+      (resumeData.matched_keywords?.length || 0) + (resumeData.unmatched_keywords?.length || 0) > 0;
+
     const hasAnyContent =
-      personalDetailsText || educationText || workExperienceText || matchedSkillsText;
+      personalDetailsText || educationText || workExperienceText || matchedSkillsText || hasKeywordStats;
 
     if (!hasAnyContent) {
       setPagesStatus('no-pages');
@@ -222,6 +282,19 @@ const ResumeBook1 = ({ resumeData }) => {
               </div>
             </BookPage>
           ))}
+
+          {/* Keyword Match Page */}
+          {(resumeData?.matched_keywords?.length > 0 || resumeData?.unmatched_keywords?.length > 0) && (
+            <BookPage key="keyword-match">
+              <div className="page-content">
+                <h4>Keyword Match</h4>
+                <KeywordMatchDonut
+                  matchedCount={resumeData.matched_keywords?.length || 0}
+                  unmatchedCount={resumeData.unmatched_keywords?.length || 0}
+                />
+              </div>
+            </BookPage>
+          )}
         </HTMLFlipBook>
       ) : pagesStatus === 'loading' ? (
         <div>Loading…</div>

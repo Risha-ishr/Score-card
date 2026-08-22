@@ -24,3 +24,63 @@
         color: #1E293B;
     }
 }
+
+.page-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+}
+
+.keyword-donut-chart {
+    position: relative;
+}
+
+.keyword-donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+
+    strong {
+        font-size: 18px;
+        color: #1E293B;
+    }
+
+    span {
+        font-size: 11px;
+        color: #64748B;
+    }
+}
+
+.keyword-donut-stats {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    font-size: 13px;
+    color: #334155;
+}
+
+.keyword-donut-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.keyword-donut-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}

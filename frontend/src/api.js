@@ -70,6 +70,12 @@ export const uploadResume = (id, file) => {
 export const getResumeParsed = (id) =>
   request(`/admin/employees/${id}/resume/parsed`, { headers: headers() });
 
+export const matchResumeKeywords = (id) =>
+  request(`/admin/employees/${id}/resume/match-keywords`, {
+    method: 'POST',
+    headers: headers()
+  });
+
 export const fetchResumeFile = async (id) => {
   const res = await fetch(`${BASE}/admin/employees/${id}/resume/file`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }

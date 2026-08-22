@@ -19,7 +19,7 @@ from app.schemas.parameter import ParameterResponse
 from app.schemas.scorecard import ScorecardCreate, ScorecardResponse, ScoreItem
 from app.auth.hashing import hash_password
 from app.auth.jwt import require_admin
-from app.services.resume_parser import extract_text, parse_resume
+from app.services.resume_parser import extract_text, parse_resume, match_keywords
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -354,18 +354,16 @@ async def upload_resume(
         db.add(scorecard)
         db.flush()
 
-    existing_skills = {s.lower(): s for s in (scorecard.skills or [])}
-    parsed = parse_resume(text, keywords=list(existing_skills.values()))
-    for skill in parsed["skills"]:
-        if skill.lower() not in existing_skills:
-            existing_skills[skill.lower()] = skill
+    # Keyword matching is a separate, explicit step (see /resume/match-keywords
+    # below) so it always checks against the skills the client has entered,
+    # never against skills the parser guessed from this same resume.
+    parsed = parse_resume(text, keywords=[])
 
     scorecard.resume_filename     = filename
     scorecard.resume_content_type = file.content_type
     scorecard.resume_file         = content
     scorecard.resume_text         = text
     scorecard.resume_data         = parsed
-    scorecard.skills              = list(existing_skills.values())
 
     db.commit()
 
@@ -374,6 +372,37 @@ async def upload_resume(
         "filename": filename,
         "parsed":   parsed,
         "skills":   scorecard.skills,
+    }
+
+
+# ── POST /api/admin/employees/{id}/resume/match-keywords (match resume text
+#    against the client-entered skills list) ─────────────────────────────────
+
+@router.post("/employees/{employee_id}/resume/match-keywords")
+def match_resume_keywords(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+    if not scorecard or not scorecard.resume_text:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume uploaded")
+    if not scorecard.skills:
+        raise HTTPException(status_code=400, detail="Add skills before matching against the resume.")
+
+    matched, unmatched = match_keywords(scorecard.resume_text, scorecard.skills)
+
+    parsed = dict(scorecard.resume_data or {})
+    parsed["matched_keywords"]   = matched
+    parsed["unmatched_keywords"] = unmatched
+    scorecard.resume_data = parsed
+
+    db.commit()
+
+    return {
+        "matched_keywords":   matched,
+        "unmatched_keywords": unmatched,
+        "resume_data":        parsed,
     }
 
 
