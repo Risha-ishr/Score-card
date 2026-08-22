@@ -53,7 +53,7 @@ export default function ScoreForm({ employee, onBack }) {
             email,
             client:         sc.client   || '',
             position:       sc.position || '',
-            jd_shared:      !!sc.jd_shared,
+            jd_shared:      true,
             jd_shared_date: sc.jd_shared_date ? dayjs(sc.jd_shared_date) : null,
           });
           setRemarks(sc.remarks || '');
@@ -67,7 +67,7 @@ export default function ScoreForm({ employee, onBack }) {
             email,
             client:    '',
             position:  '',
-            jd_shared: false,
+            jd_shared: true,
           });
         }
       } catch (err) {
@@ -191,8 +191,13 @@ export default function ScoreForm({ employee, onBack }) {
               >
                 <Input placeholder="Position / Role" />
               </Form.Item>
-              <Form.Item name="jd_shared" valuePropName="checked">
-                <Checkbox>Yes, Job Description was shared</Checkbox>
+              <Form.Item name="jd_shared"
+              rules={[{
+                validator: (_, value) =>
+                  value ? Promise.resolve() : Promise.reject(new Error('Job Description must be shared')),
+              }]}
+              valuePropName="checked">
+                <Checkbox >Yes, Job Description was shared</Checkbox>
               </Form.Item>
               <Form.Item
                 noStyle
