@@ -4,9 +4,6 @@ import { getMyScorecard } from '../api';
 
 const PAGE_SIZE = 5;
 
-const MULT    = { 1: 3, 2: 2, 3: 1 };
-const MAX_TOT = 115;
-
 function perf(pct) {
   if (pct >= 80) return { label: 'Excellent',         color: '#10B981' };
   if (pct >= 60) return { label: 'Good',              color: '#3B82F6' };
@@ -26,11 +23,11 @@ export default function EmployeeDashboard({ user, onLogout }) {
     })();
   }, []);
 
-  const allScores     = data?.scores ?? [];
-  const weightedTotal = allScores.length
-    ? allScores.reduce((s, r) => s + r.score * MULT[r.weightage], 0)
+  const allScores = data?.scores ?? [];
+  // weightage is each parameter's % share of the total (sums to 100); score is 1-5.
+  const pct = allScores.length
+    ? Math.round(allScores.reduce((s, r) => s + (r.score / 5) * r.weightage, 0))
     : 0;
-  const pct = Math.round((weightedTotal / MAX_TOT) * 100);
   const p   = perf(pct);
 
   const pageCount  = Math.ceil(allScores.length / PAGE_SIZE);
@@ -65,7 +62,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
                 <p className="sub">Your evaluation results</p>
               </div>
               <div className="score-badge" style={{ borderColor: p.color, color: p.color }}>
-                {weightedTotal}/{MAX_TOT} ({pct}%) &mdash; {p.label}
+                {pct}% &mdash; {p.label}
               </div>
             </div>
 
@@ -91,8 +88,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
                   <tr>
                     <th>#</th>
                     <th>Parameter</th>
-                    <th>Weightage</th>
-                    <th>Multiplier</th>
+                    <th>Weight</th>
                     <th>Score</th>
                     <th>Weighted</th>
                     <th>Visual</th>
@@ -100,9 +96,8 @@ export default function EmployeeDashboard({ user, onLogout }) {
                 </thead>
                 <tbody>
                   {pageScores.map((s, i) => {
-                    const mult   = MULT[s.weightage];
-                    const wtd    = s.score * mult;
-                    const maxWtd = 5 * mult;
+                    const wtd    = Math.round((s.score / 5) * s.weightage * 10) / 10;
+                    const maxWtd = s.weightage;
                     return (
                       <tr key={s.parameter_id}>
                         <td className="td-num">{offset + i + 1}</td>
@@ -110,8 +105,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
                           <div>{s.name}</div>
                           {s.description && <div className="param-desc-sm">{s.description}</div>}
                         </td>
-                        <td><span className={`w-chip w${s.weightage}`}>W{s.weightage}</span></td>
-                        <td>×{mult}</td>
+                        <td><span className="w-chip">{s.weightage}%</span></td>
                         <td>
                           <div className="stars-row">
                             {[1,2,3,4,5].map(n => (
@@ -132,8 +126,8 @@ export default function EmployeeDashboard({ user, onLogout }) {
                 </tbody>
                 <tfoot>
                   <tr className="total-foot">
-                    <td colSpan={5}><strong>Total Weighted Score</strong></td>
-                    <td><strong>{weightedTotal}/115</strong></td>
+                    <td colSpan={4}><strong>Total Weighted Score</strong></td>
+                    <td><strong>{pct}%</strong></td>
                     <td>
                       <div className="mini-bar">
                         <div className="mini-fill" style={{ width: `${pct}%`, background: p.color }} />

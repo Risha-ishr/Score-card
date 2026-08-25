@@ -28,22 +28,21 @@ def seed():
         _seed_parameters(db)
     finally:
         db.close()
-
-
 def _seed_parameters(db):
     if db.query(Parameter).count():
         return
     params = [
-        Parameter(id=1,  name="Urgency",                               description="Urgency for the candidate", weightage=1),
-        Parameter(id=2,  name="Actively Looking Out",                  description="Other positions/offers",    weightage=1),
-        Parameter(id=3,  name="Joining/Start Date",                    description="Notice dependency",         weightage=1),
-        Parameter(id=4,  name="Salary/Earnings Expectations",          description="",                          weightage=2),
-        Parameter(id=5,  name="Availability & Accessibility on Calls", description="",                          weightage=2),
-        Parameter(id=6,  name="WorkEmotion Grid (WEG) & W/L Balance",  description="",                          weightage=2),
-        Parameter(id=7,  name="Communication",                         description="",                          weightage=3),
-        Parameter(id=8,  name="Untoward/Emergency Scenarios",          description="",                          weightage=2),
-        Parameter(id=9,  name="Completeness",                          description="Meets JD",                  weightage=2),
-        Parameter(id=10, name="Risk to Joining",                       description="Other offers",              weightage=1),
+        Parameter(id=1,  name="Urgency / Active Search",                     description="",                     weightage=12),
+        Parameter(id=2,  name="Counter-Offer & Competitive Position",        description="",                     weightage=10),
+        Parameter(id=3,  name="Joining & Timeline Fit",                      description="",                     weightage=10),
+        Parameter(id=4,  name="Compensation Expectations & Flexibility",     description="",                     weightage=4),
+        Parameter(id=5,  name="Process Engagement",                         description="Closure Probability",  weightage=4),
+        Parameter(id=6,  name="Work Emotion Grid (WEG)",                    description="",                     weightage=6),
+        Parameter(id=7,  name="Work-Life & Location Fit",                   description="",                     weightage=6),
+        Parameter(id=8,  name="Communication & Clarity",                    description="",                     weightage=10),
+        Parameter(id=9,  name="Candidate Fit",                              description="",                     weightage=16),
+        Parameter(id=10, name="Process Engagement",                        description="Risk Control",         weightage=10),
+        Parameter(id=11, name="Risk to Joining / Untoward Scenarios",       description="",                     weightage=12),
     ]
     db.add_all(params)
     db.commit()
