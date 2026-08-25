@@ -123,8 +123,10 @@ def get_employees(
     search: Optional[str] = Query(None, description="Search by name, applicant, client or position"),
     # _: User = Depends(require_admin),
 ):
+    # Parameter.weightage is now each parameter's % share of the total (all weightages sum to 100).
+    # score is 1-5, so score/5 * weightage = that parameter's percentage contribution.
     weighted_subq = (
-        select(func.sum(Score.score * (4 - Parameter.weightage)))
+        select(func.sum(Score.score * Parameter.weightage))
         .join(Parameter, Score.parameter_id == Parameter.id)
         .where(Score.scorecard_id == Scorecard.id)
         .scalar_subquery()
@@ -142,7 +144,7 @@ def get_employees(
             Scorecard.position,
             Scorecard.updated_at,
             Scorecard.updated_at_history,
-            func.round(cast(weighted_subq * 100.0 / 115, Numeric), 1).label("weighted_pct"),
+            func.round(cast(weighted_subq / 5.0, Numeric), 1).label("weighted_pct"),
         )
         .outerjoin(Scorecard, Scorecard.employee_id == User.id)
         .filter(User.role == UserRole.employee)

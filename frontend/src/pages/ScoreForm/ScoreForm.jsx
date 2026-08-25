@@ -5,9 +5,6 @@ import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResum
 import ResumeBook from '../../components/ResumeBook/ResumeBook';
 import './ScoreForm.scss'
 import ResumeBook1 from '../../components/ResumeBook/ResumeBook1';
-const MULT    = { 1: 3, 2: 2, 3: 1 };
-const MAX_TOT = 115;
-
 function perf(pct) {
   if (pct >= 80) return { label: 'Excellent',          color: '#10B981' };
   if (pct >= 60) return { label: 'Good',               color: '#3B82F6' };
@@ -63,7 +60,7 @@ export default function ScoreForm({ employee, onBack }) {
             email,
             client:         sc.client   || '',
             position:       sc.position || '',
-            jd_shared:      !!sc.jd_shared,
+            jd_shared:      true,
             jd_shared_date: sc.jd_shared_date ? dayjs(sc.jd_shared_date) : null,
           });
           setRemarks(sc.remarks || '');
@@ -98,7 +95,7 @@ export default function ScoreForm({ employee, onBack }) {
             email,
             client:    '',
             position:  '',
-            jd_shared: false,
+            jd_shared: true,
           });
         }
       } catch (err) {
@@ -133,9 +130,9 @@ export default function ScoreForm({ employee, onBack }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const weightedTotal = params.reduce((s, p) => s + (scores[p.id] || 0) * MULT[p.weightage], 0);
-  const pct           = Math.round((weightedTotal / MAX_TOT) * 100);
-  const p             = perf(pct);
+  // weightage is each parameter's % share of the total (sums to 100); score is 1-5.
+  const pct = Math.round(params.reduce((s, p) => s + ((scores[p.id] || 0) / 5) * p.weightage, 0));
+  const p   = perf(pct);
 
   const handleSkillKeyDown = (e) => {
     if (e.key !== 'Enter') return;
@@ -247,7 +244,7 @@ export default function ScoreForm({ employee, onBack }) {
             <h2>Score: {displayName || '—'}</h2>
           </div>
           <div className="score-badge" style={{ borderColor: p.color, color: p.color }}>
-            {weightedTotal}/{MAX_TOT} ({pct}%) &mdash; {p.label}
+            {pct}% &mdash; {p.label}
           </div>
         </div>
 
@@ -286,8 +283,13 @@ export default function ScoreForm({ employee, onBack }) {
               >
                 <Input placeholder="Position / Role" />
               </Form.Item>
-              <Form.Item name="jd_shared" valuePropName="checked">
-                <Checkbox>Yes, Job Description was shared</Checkbox>
+              <Form.Item name="jd_shared"
+              rules={[{
+                validator: (_, value) =>
+                  value ? Promise.resolve() : Promise.reject(new Error('Job Description must be shared')),
+              }]}
+              valuePropName="checked">
+                <Checkbox >Yes, Job Description was shared</Checkbox>
               </Form.Item>
               <Form.Item
                 noStyle
@@ -317,9 +319,7 @@ export default function ScoreForm({ employee, onBack }) {
         <div className="card form-card" style={{ position: 'relative' }} ref={containerRef}>
           <h3 className="card-title">Score Parameters</h3>
           <div className="params-legend">
-            <span className="legend-item"><span className="w-chip w1">W1</span> Weightage 1 → ×3 (Highest)</span>
-            <span className="legend-item"><span className="w-chip w2">W2</span> Weightage 2 → ×2</span>
-            <span className="legend-item"><span className="w-chip w3">W3</span> Weightage 3 → ×1 (Lowest)</span>
+            <span className="legend-item">Weight = this parameter's share of the total score</span>
           </div>
 
           <div className="param-header-row">
@@ -331,9 +331,8 @@ export default function ScoreForm({ employee, onBack }) {
 
           {params.map(p => {
             const score   = scores[p.id] || 0;
-            const mult    = MULT[p.weightage];
-            const wtd     = score * mult;
-            const maxWtd  = 5 * mult;
+            const wtd     = Math.round((score / 5) * p.weightage * 10) / 10;
+            const maxWtd  = p.weightage;
             return (
               <div key={p.id} className="param-row">
                 <div className="param-name-col">
@@ -341,7 +340,7 @@ export default function ScoreForm({ employee, onBack }) {
                   {p.description && <span className="param-desc">{p.description}</span>}
                 </div>
                 <div>
-                  <span className={`w-chip w${p.weightage}`}>W{p.weightage} ×{mult}</span>
+                  <span className="w-chip">{p.weightage}%</span>
                 </div>
                 <div className="score-dots-row">
                   {[1, 2, 3, 4, 5].map(n => (
@@ -372,7 +371,7 @@ export default function ScoreForm({ employee, onBack }) {
                 <div className="total-fill" style={{ width: `${pct}%`, background: perf(pct).color }} />
               </div>
               <span className="total-label" style={{ color: perf(pct).color }}>
-                {weightedTotal}/115 &nbsp;({pct}%)
+                {pct}%
               </span>
             </div>
           </div>
