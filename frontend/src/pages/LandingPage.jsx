@@ -31,10 +31,25 @@ const STATS = [
   { value: '100%', label: 'Score Transparency' },
 ];
 
+// Annual price = 10x monthly (2 months free), shown as an effective monthly rate.
+const PLANS = [
+  { name: 'Starter',    monthly: 0,    desc: 'Up to 25 scorecards / month' },
+  { name: 'Growth',     monthly: 1499, desc: 'Unlimited scorecards, all parameters', featured: true },
+  { name: 'Enterprise', monthly: null, desc: 'Unlimited seats, custom workflows' },
+];
+
+function formatPrice(monthly, annual) {
+  if (monthly === null) return { price: 'Custom', period: '' };
+  const amount = annual ? Math.round((monthly * 10) / 12) : monthly;
+  if (amount === 0) return { price: '₹0', period: 'forever' };
+  return { price: `₹${amount.toLocaleString('en-IN')}`, period: '/ mo' };
+}
+
 export default function LandingPage({ user, onLogout }) {
   const navigate = useNavigate();
   const onEnter  = () => navigate('/scores');
   const [visible, setVisible] = useState(false);
+  const [annual, setAnnual] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 60);
@@ -81,6 +96,7 @@ export default function LandingPage({ user, onLogout }) {
             <span className="lp-arrow">→</span>
           </button>
           <a className="lp-btn-outline" href="#features">Explore Features</a>
+          <a className="lp-btn-outline" href="#pricing">See Pricing</a>
         </div>
 
         {/* Stats */}
@@ -106,6 +122,41 @@ export default function LandingPage({ user, onLogout }) {
               <p>{desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="lp-pricing" id="pricing">
+        <p className="lp-section-tag">Pricing</p>
+        <h2 className="lp-section-title">Simple plans, no surprises</h2>
+
+        <div className="lp-billing-toggle">
+          <span className={!annual ? 'lp-billing-active' : ''}>Monthly</span>
+          <button
+            className={`lp-billing-switch ${annual ? 'lp-billing-switch-on' : ''}`}
+            onClick={() => setAnnual((v) => !v)}
+            aria-label="Toggle annual billing"
+          >
+            <span className="lp-billing-knob" />
+          </button>
+          <span className={annual ? 'lp-billing-active' : ''}>Annual — get 2 months free</span>
+        </div>
+
+        <div className="lp-pricing-grid">
+          {PLANS.map(({ name, monthly, desc, featured }) => {
+            const { price, period } = formatPrice(monthly, annual);
+            return (
+              <div key={name} className={`lp-price-card ${featured ? 'lp-price-card-featured' : ''}`}>
+                {featured && <span className="lp-price-ribbon">RECOMMENDED</span>}
+                <h3>{name}</h3>
+                <div className="lp-price-value">
+                  {price}
+                  {period && <span>{period}</span>}
+                </div>
+                <p>{desc}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
