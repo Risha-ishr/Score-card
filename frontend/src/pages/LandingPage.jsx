@@ -31,18 +31,56 @@ const STATS = [
   { value: '100%', label: 'Score Transparency' },
 ];
 
-// Annual price = 10x monthly (2 months free), shown as an effective monthly rate.
+// Annual = 10x monthly (2 months free). The real monthly price is always shown —
+// the annual view adds the yearly figure and the saving, it never replaces the
+// monthly rate with a blended number.
 const PLANS = [
-  { name: 'Starter',    monthly: 0,    desc: 'Up to 25 scorecards / month' },
-  { name: 'Growth',     monthly: 1499, desc: 'Unlimited scorecards, all parameters', featured: true },
-  { name: 'Enterprise', monthly: null, desc: 'Unlimited seats, custom workflows' },
+  {
+    name: 'Smart Shortlist',
+    monthly: 9999,
+    annual: 99990,
+    annualSaving: 19998,
+    screens: '200',
+    reports: '15 Core',
+    users: 3,
+  },
+  {
+    name: 'Decision Fit',
+    monthly: 24999,
+    annual: 249990,
+    annualSaving: 49998,
+    screens: '500',
+    reports: '25 Decision Fit',
+    users: 5,
+    featured: true,
+  },
+  {
+    name: 'Leadership Intelligence',
+    monthly: 59999,
+    annual: 599990,
+    annualSaving: 119998,
+    screens: '1,000',
+    reports: '10 Advanced',
+    users: 10,
+    note: 'The 10 reports / month is intentional. These are advanced assessments with substantially deeper analysis — not directly comparable to the higher-volume Decision Fit reports. The lower allowance reinforces the premium, high-value nature of the assessment rather than positioning this tier as a volume-based upgrade.',
+  },
+  {
+    name: 'Enterprise — Super Platinum',
+    monthly: 149999,
+    annual: 1499990,
+    annualSaving: 299998,
+    screens: '3,000',
+    reports: '50 Fitment-ready dossiers',
+    users: 25,
+  },
 ];
 
-function formatPrice(monthly, annual) {
-  if (monthly === null) return { price: 'Custom', period: '' };
-  const amount = annual ? Math.round((monthly * 10) / 12) : monthly;
-  if (amount === 0) return { price: '₹0', period: 'forever' };
-  return { price: `₹${amount.toLocaleString('en-IN')}`, period: '/ mo' };
+const rupees = (n) => `₹${n.toLocaleString('en-IN')}`;
+
+function formatPrice(plan, annual) {
+  return annual
+    ? { price: rupees(plan.annual), period: '/ yr' }
+    : { price: rupees(plan.monthly), period: '/ mo' };
 }
 
 export default function LandingPage({ user, onLogout }) {
@@ -143,20 +181,40 @@ export default function LandingPage({ user, onLogout }) {
         </div>
 
         <div className="lp-pricing-grid">
-          {PLANS.map(({ name, monthly, desc, featured }) => {
-            const { price, period } = formatPrice(monthly, annual);
+          {PLANS.map((plan) => {
+            const { name, featured, screens, reports, users, monthly, note } = plan;
+            const { price, period } = formatPrice(plan, annual);
             return (
               <div key={name} className={`lp-price-card ${featured ? 'lp-price-card-featured' : ''}`}>
                 {featured && <span className="lp-price-ribbon">RECOMMENDED</span>}
                 <h3>{name}</h3>
                 <div className="lp-price-value">
                   {price}
-                  {period && <span>{period}</span>}
+                  <span>{period}</span>
                 </div>
-                <p>{desc}</p>
+                {annual
+                  ? <p className="lp-price-saving">Save {rupees(plan.annualSaving)} · {rupees(monthly)} / mo value</p>
+                  : <p className="lp-price-saving">{rupees(plan.annual)} / yr billed annually</p>}
+                <ul className="lp-price-specs">
+                  <li><span>AI CV screens</span><strong>{screens} / mo</strong></li>
+                  <li><span>Reports</span><strong>{reports} / mo</strong></li>
+                  <li><span>Users</span><strong>{users}</strong></li>
+                </ul>
+                {note && <p className="lp-price-note">{note}</p>}
               </div>
             );
           })}
+        </div>
+
+        <div className="lp-pilot">
+          <div className="lp-pilot-tag">Launch offer</div>
+          <h3>14-day Assisted Pilot — <strong>₹4,999</strong></h3>
+          <ul className="lp-pilot-list">
+            <li>100 AI CV screens</li>
+            <li>5 Decision Fit reports</li>
+            <li>Assisted setup and onboarding</li>
+          </ul>
+          <p>The full ₹4,999 pilot fee is credited against any annual plan if you upgrade within 15 days.</p>
         </div>
       </section>
 
