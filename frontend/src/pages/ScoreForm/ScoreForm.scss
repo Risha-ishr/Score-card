@@ -1,7 +1,110 @@
-.dot-active-scoreForm     
-{ 
-    background: #2563EB !important; 
-    border-color: #2563EB !important; 
-    color: #fff !important; 
+.dot-active-scoreForm
+{
+    background: #2563EB !important;
+    border-color: #2563EB !important;
+    color: #fff !important;
     z-index: 1 !important;
 }
+
+.skill-tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.skill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
+    border-radius: 99px;
+    padding: 5px 8px 5px 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.skill-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #2563EB;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px;
+    border-radius: 50%;
+}
+
+.skill-tag-remove:hover { background: #BFDBFE; }
+
+.skill-tag-matched {
+    background: #ECFDF5;
+    color: #059669;
+    border-color: #A7F3D0;
+}
+
+.skill-tag-matched .skill-tag-remove { color: #059669; }
+.skill-tag-matched .skill-tag-remove:hover { background: #A7F3D0; }
+
+.skill-tag-check {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.skill-tags-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.resume-upload {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px;
+    flex-wrap: wrap;
+}
+
+.resume-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.resume-file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F1F5F9;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: #334155;
+}
+
+.resume-file-name {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resume-remove-btn {
+    border: none;
+    background: transparent;
+    color: #94A3B8;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.resume-remove-btn:hover { color: #EF4444; }

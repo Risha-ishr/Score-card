@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, LargeBinary, JSON
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import func
 from app.database import Base
@@ -17,3 +17,10 @@ class Scorecard(Base):
     created_at     = Column(DateTime, server_default=func.now())
     updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())
     updated_at_history = Column(ARRAY(DateTime(timezone=True)), nullable=False, server_default='{}')
+
+    skills              = Column(ARRAY(String), nullable=False, server_default='{}')
+    resume_filename     = Column(String, nullable=True)
+    resume_content_type = Column(String, nullable=True)
+    resume_file         = Column(LargeBinary, nullable=True)
+    resume_text         = Column(String, nullable=True)
+    resume_data         = Column(JSON, nullable=True)

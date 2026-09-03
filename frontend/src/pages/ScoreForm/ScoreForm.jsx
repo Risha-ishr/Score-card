@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { getEmployeeScorecard, getParameters, saveEmployeeScorecard } from '../../api';
+import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile, getResumeParsed } from '../../api';
+import ResumeBook from '../../components/ResumeBook/ResumeBook';
 import './ScoreForm.scss'
+import ResumeBook1 from '../../components/ResumeBook/ResumeBook1';
 function perf(pct) {
   if (pct >= 80) return { label: 'Excellent',          color: '#10B981' };
   if (pct >= 60) return { label: 'Good',               color: '#3B82F6' };
@@ -19,11 +21,19 @@ export default function ScoreForm({ employee, onBack }) {
   const [loading,      setLoading]      = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState(null);
+  const [skills,     setSkills]     = useState([]);
+  const [skillInput, setSkillInput] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeName, setResumeName] = useState('');
+  const [resumeData, setResumeData] = useState(null);
+  const [matchedKeywords, setMatchedKeywords] = useState([]);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const resumeInputRef = useRef(null);
 
 
   const containerRef = useRef(null);
-  const dotRefs = useRef({}); 
-  const [linePoints, setLinePoints] = useState([]); 
+  const dotRefs = useRef({});
+  const [linePoints, setLinePoints] = useState([]);
 
   const setDotRef = (paramId, n) => (el) => {
     if (!dotRefs.current[paramId]) dotRefs.current[paramId] = {};
@@ -54,6 +64,27 @@ export default function ScoreForm({ employee, onBack }) {
             jd_shared_date: sc.jd_shared_date ? dayjs(sc.jd_shared_date) : null,
           });
           setRemarks(sc.remarks || '');
+          setSkills(sc.skills || []);
+          setResumeName(sc.resume_filename || '');
+          // setResumeData(sc.resume_data || null);
+          setMatchedKeywords([]);
+
+          // The scorecard payload only carries the raw resume_data blob; fetch
+          // the dedicated parsed-resume endpoint for the fuller picture (skills
+          // reconciled with saved ones, plus matched/unmatched keywords) when a
+          // resume is on file.
+          if (sc.resume_data) {
+            try {
+              const parsedRes = await getResumeParsed(employee.id);
+              setResumeData(parsedRes.resume_data || null);
+              setSkills(parsedRes.skills || sc.skills || []);
+              setMatchedKeywords(parsedRes.matched_keywords || []);
+            } catch (err) {
+              // Fall back silently to the data already set from the scorecard payload.
+              console.log('error:', err)
+            }
+          }
+
           const m = {};
           sData.scores.forEach(s => { m[s.parameter_id] = s.score; });
           setScores({ ...m });
@@ -103,6 +134,70 @@ export default function ScoreForm({ employee, onBack }) {
   const pct = Math.round(params.reduce((s, p) => s + ((scores[p.id] || 0) / 5) * p.weightage, 0));
   const p   = perf(pct);
 
+  const handleSkillKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const value = skillInput.trim();
+    if (!value) return;
+    setSkills(s => (s.some(sk => sk.toLowerCase() === value.toLowerCase()) ? s : [...s, value]));
+    setSkillInput('');
+  };
+
+  const handleRemoveSkill = async (skill) => {
+    const prevSkills = skills;
+    const nextSkills = skills.filter(sk => sk !== skill);
+    setSkills(nextSkills);
+
+    try {
+      const values    = antForm.getFieldsValue();
+      const scoresArr = Object.entries(scores).map(([pid, sc]) => ({
+        parameter_id: parseInt(pid),
+        score:        parseInt(sc)
+      }));
+      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr, skills: nextSkills });
+    } catch (err) {
+      setSkills(prevSkills);
+      setMsg({ ok: false, text: 'Failed to remove skill: ' + err.message });
+    }
+  };
+
+  const handleResumeChange = async (e) => {
+    const file = e.target.files?.[0] || null;
+    setResumeFile(file);
+    if (!file) return;
+
+    setResumeUploading(true);
+    setMsg(null);
+    try {
+      const res = await uploadResume(employee.id, file);
+      setResumeName(res.filename);
+      setResumeData(res.parsed);
+      setSkills(res.skills || []);
+      setMatchedKeywords(res.parsed?.matched_keywords || []);
+      setMsg({ ok: true, text: 'Resume parsed successfully.' });
+    } catch (err) {
+      setMsg({ ok: false, text: 'Resume upload failed: ' + err.message });
+      setResumeFile(null);
+      if (resumeInputRef.current) resumeInputRef.current.value = '';
+    }
+    setResumeUploading(false);
+  };
+
+  const handleRemoveResume = () => {
+    setResumeFile(null);
+    if (resumeInputRef.current) resumeInputRef.current.value = '';
+  };
+
+  const handleViewResume = async () => {
+    try {
+      const blob = await fetchResumeFile(employee.id);
+      const url  = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      setMsg({ ok: false, text: 'Could not open resume: ' + err.message });
+    }
+  };
+
   const handleSave = async () => {
     try {
       await antForm.validateFields();
@@ -119,7 +214,7 @@ export default function ScoreForm({ employee, onBack }) {
         parameter_id: parseInt(pid),
         score:        parseInt(sc)
       }));
-      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr });
+      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr, skills });
       setMsg({ ok: true, text: 'Scorecard saved successfully!' });
     } catch (err) {
       setMsg({ ok: false, text: 'Error: ' + err.message });
@@ -303,6 +398,87 @@ export default function ScoreForm({ employee, onBack }) {
             ))} */}
           </svg>
         </div>
+
+        {/* Skills */}
+        <div className="card form-card">
+          <h3 className="card-title">Skills</h3>
+          <div className="form-grid-2">
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>Skills</label>
+              <input
+                type="text"
+                placeholder="Type a skill and press Enter"
+                value={skillInput}
+                onChange={e => setSkillInput(e.target.value)}
+                onKeyDown={handleSkillKeyDown}
+              />
+              {skills.length > 0 && (
+                <div className="skill-tags-wrap">
+                  {skills.map(skill => {
+                    const fromResume = matchedKeywords.some(k => k.toLowerCase() === skill.toLowerCase());
+                    return (
+                      <span key={skill} className={`skill-tag${fromResume ? ' skill-tag-matched' : ''}`}>
+                        {fromResume && (
+                          <span className="skill-tag-check" title="Found in resume">✓</span>
+                        )}
+                        {skill}
+                        <button
+                          type="button"
+                          className="skill-tag-remove"
+                          onClick={() => handleRemoveSkill(skill)}
+                          title="Remove skill"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              {matchedKeywords.length > 0 && (
+                <p className="skill-tags-hint muted">
+                  <span className="skill-tag-check" aria-hidden="true">✓</span> found in resume
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Resume Upload */}
+        <div className="card form-card">
+          <h3 className="card-title">Resume</h3>
+          <div className="resume-upload">
+            <input
+              ref={resumeInputRef}
+              type="file"
+              id="resume-upload-input"
+              accept=".pdf,.docx"
+              onChange={handleResumeChange}
+              disabled={resumeUploading}
+              hidden
+            />
+            <label htmlFor="resume-upload-input" className="btn-outline resume-upload-btn">
+              📎 {resumeUploading ? 'Uploading…' : 'Choose Resume File'}
+            </label>
+            {resumeFile ? (
+              <div className="resume-file-info">
+                <span className="resume-file-name">{resumeFile.name}</span>
+                <button type="button" className="resume-remove-btn" onClick={handleRemoveResume} title="Remove file">✕</button>
+              </div>
+            ) : resumeName ? (
+              <div className="resume-file-info">
+                <span className="resume-file-name">{resumeName}</span>
+                <button type="button" className="btn-outline" onClick={handleViewResume}>View</button>
+              </div>
+            ) : (
+              <span className="muted">No file selected (PDF, DOCX)</span>
+            )}
+          </div>
+        </div>
+
+        {/* Resume Book Preview */}
+        {/* <ResumeBook resumeData={resumeData} /> */}
+        <ResumeBook1 resumeData={resumeData} />
 
         <div className="card form-card">
           <h3 className="card-title">Remarks</h3>
