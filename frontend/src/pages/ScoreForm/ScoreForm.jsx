@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, fetchResumeFile, getResumeParsed } from '../../api';
+import { getEmployeeScorecard, getParameters, saveEmployeeScorecard, uploadResume, parseResume, fetchResumeFile, getResumeParsed } from '../../api';
 import ResumeBook from '../../components/ResumeBook/ResumeBook';
 import './ScoreForm.scss'
 import ResumeBook1 from '../../components/ResumeBook/ResumeBook1';
@@ -23,11 +23,11 @@ export default function ScoreForm({ employee, onBack }) {
   const [msg,     setMsg]     = useState(null);
   const [skills,     setSkills]     = useState([]);
   const [skillInput, setSkillInput] = useState('');
-  const [resumeFile, setResumeFile] = useState(null);
   const [resumeName, setResumeName] = useState('');
   const [resumeData, setResumeData] = useState(null);
   const [matchedKeywords, setMatchedKeywords] = useState([]);
   const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeParsing,   setResumeParsing]   = useState(false);
   const resumeInputRef = useRef(null);
 
 
@@ -161,32 +161,56 @@ export default function ScoreForm({ employee, onBack }) {
     }
   };
 
+  const [resumeParseError, setResumeParseError] = useState(null);
+
   const handleResumeChange = async (e) => {
     const file = e.target.files?.[0] || null;
-    setResumeFile(file);
     if (!file) return;
-
+    setResumeParseError(null);
     setResumeUploading(true);
     setMsg(null);
     try {
       const res = await uploadResume(employee.id, file);
       setResumeName(res.filename);
+      if (resumeInputRef.current) resumeInputRef.current.value = '';
+      setMsg({ ok: true, text: 'Resume uploaded successfully.' });
+    } catch (err) {
+      setMsg({ ok: false, text: 'Resume upload failed: ' + err.message });
+    }
+    setResumeUploading(false);
+  };
+
+  const handleParseResume = async () => {
+    if (skills.length < 2) {
+      setResumeParseError('Please add at least 2 skills before parsing the resume.');
+      return;
+    }
+    if (!resumeName) {
+      setResumeParseError('Please upload a resume first before parsing.');
+      return;
+    }
+    setResumeParseError(null);
+    setResumeParsing(true);
+    setMsg(null);
+    try {
+      const values    = antForm.getFieldsValue();
+      const scoresArr = Object.entries(scores).map(([pid, sc]) => ({
+        parameter_id: parseInt(pid),
+        score:        parseInt(sc),
+      }));
+      await saveEmployeeScorecard(employee.id, { ...values, remarks, scores: scoresArr, skills });
+
+      const res = await parseResume(employee.id);
       setResumeData(res.parsed);
       setSkills(res.skills || []);
       setMatchedKeywords(res.parsed?.matched_keywords || []);
       setMsg({ ok: true, text: 'Resume parsed successfully.' });
     } catch (err) {
-      setMsg({ ok: false, text: 'Resume upload failed: ' + err.message });
-      setResumeFile(null);
-      if (resumeInputRef.current) resumeInputRef.current.value = '';
+      setMsg({ ok: false, text: 'Resume parsing failed: ' + err.message });
     }
-    setResumeUploading(false);
+    setResumeParsing(false);
   };
 
-  const handleRemoveResume = () => {
-    setResumeFile(null);
-    if (resumeInputRef.current) resumeInputRef.current.value = '';
-  };
 
   const handleViewResume = async () => {
     try {
@@ -454,26 +478,35 @@ export default function ScoreForm({ employee, onBack }) {
               id="resume-upload-input"
               accept=".pdf,.docx"
               onChange={handleResumeChange}
-              disabled={resumeUploading}
+              disabled={resumeUploading || resumeParsing}
               hidden
             />
             <label htmlFor="resume-upload-input" className="btn-outline resume-upload-btn">
-              📎 {resumeUploading ? 'Uploading…' : 'Choose Resume File'}
+              {resumeUploading ? '⏳ Uploading…' : '📎 Choose Resume File'}
             </label>
-            {resumeFile ? (
-              <div className="resume-file-info">
-                <span className="resume-file-name">{resumeFile.name}</span>
-                <button type="button" className="resume-remove-btn" onClick={handleRemoveResume} title="Remove file">✕</button>
-              </div>
-            ) : resumeName ? (
+            {resumeName ? (
               <div className="resume-file-info">
                 <span className="resume-file-name">{resumeName}</span>
                 <button type="button" className="btn-outline" onClick={handleViewResume}>View</button>
               </div>
             ) : (
-              <span className="muted">No file selected (PDF, DOCX)</span>
+              <span className="muted">No file uploaded (PDF, DOCX)</span>
             )}
           </div>
+          {resumeParseError && (
+            <p className="alert alert-error" style={{ marginTop: '10px', marginBottom: '4px' }}>
+              {resumeParseError}
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ marginTop: '12px', marginLeft: '18px' }}
+            onClick={handleParseResume}
+            disabled={resumeUploading || resumeParsing}
+          >
+            {resumeParsing ? '⏳ Parsing…' : '🔍 Parse Resume'}
+          </button>
         </div>
 
         {/* Resume Book Preview */}

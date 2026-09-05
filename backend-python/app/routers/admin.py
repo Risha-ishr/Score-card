@@ -314,7 +314,7 @@ async def save_employee_scorecard(
     return {"success": True, "scorecard_id": scorecard.id}
 
 
-# ── POST /api/admin/employees/{id}/resume (upload + parse) ──────────────────
+# ── POST /api/admin/employees/{id}/resume (upload only) ─────────────────────
 
 RESUME_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 
@@ -345,37 +345,70 @@ async def upload_resume(
     if len(content) > RESUME_MAX_BYTES:
         raise HTTPException(status_code=400, detail="Resume file is too large (max 10 MB).")
 
-    try:
-        text = extract_text(content, filename)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
     scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
     if not scorecard:
         scorecard = Scorecard(employee_id=employee_id, updated_at_history=[])
         db.add(scorecard)
         db.flush()
 
+    scorecard.resume_filename     = filename
+    scorecard.resume_content_type = file.content_type
+    scorecard.resume_file         = content
+    scorecard.resume_text         = None
+    scorecard.resume_data         = None
+
+    db.commit()
+
+    return {"success": True, "filename": filename}
+
+
+# ── POST /api/admin/employees/{id}/resume/parse ──────────────────────────────
+
+@router.post("/employees/{employee_id}/resume/parse")
+def parse_employee_resume(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    employee = (
+        db.query(User)
+        .filter(User.id == employee_id, User.role == UserRole.employee)
+        .first()
+    )
+    if not employee:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
+
+    scorecard = db.query(Scorecard).filter(Scorecard.employee_id == employee_id).first()
+    if not scorecard or not scorecard.resume_file:
+        raise HTTPException(status_code=400, detail="No resume uploaded yet. Please upload a resume first.")
+
     existing_skills = {s.lower(): s for s in (scorecard.skills or [])}
+    if len(existing_skills) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="At least 2 skills must be added before parsing. Resume parsing is based on those skills.",
+        )
+
+    try:
+        text = extract_text(scorecard.resume_file, scorecard.resume_filename or "resume")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     parsed = parse_resume(text, keywords=list(existing_skills.values()))
     for skill in parsed["skills"]:
         if skill.lower() not in existing_skills:
             existing_skills[skill.lower()] = skill
 
-    scorecard.resume_filename     = filename
-    scorecard.resume_content_type = file.content_type
-    scorecard.resume_file         = content
-    scorecard.resume_text         = text
-    scorecard.resume_data         = parsed
-    scorecard.skills              = list(existing_skills.values())
+    scorecard.resume_text = text
+    scorecard.resume_data = parsed
+    scorecard.skills      = list(existing_skills.values())
 
     db.commit()
 
     return {
-        "success":  True,
-        "filename": filename,
-        "parsed":   parsed,
-        "skills":   scorecard.skills,
+        "success": True,
+        "parsed":  parsed,
+        "skills":  scorecard.skills,
     }
 
 

@@ -67,6 +67,12 @@ export const uploadResume = (id, file) => {
   });
 };
 
+export const parseResume = (id) =>
+  request(`/admin/employees/${id}/resume/parse`, {
+    method: 'POST',
+    headers: headers(),
+  });
+
 export const getResumeParsed = (id) =>
   request(`/admin/employees/${id}/resume/parsed`, { headers: headers() });
 
